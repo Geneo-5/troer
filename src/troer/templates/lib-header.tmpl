@@ -1,0 +1,13 @@
+/* SPDX-License-Identifier: LGPL-3.0-only */
+\#ifndef _${ident_name.upper()}_H
+\#define _${ident_name.upper()}_H
+
+#for $h in sorted($header):
+#if $h[0] == '<'
+\#include $h
+#else
+\#include "$h"
+#end if
+#end for
+
+\#endif /* _${ident_name.upper()}_H */

@@ -1,0 +1,51 @@
+schema: storage
+name: test-storage
+version: 0.0.1
+doc: Test storage schema and idl
+prefix: t1
+
+definitions:
+  -
+    name: test-const-1
+    type: const
+    header: <test/big-test.h>
+  -
+    name: test-const-2
+    type: const
+    value: 1
+  -
+    name: test-enum-1
+    type: enum
+    entries:
+      - enum-1
+      - enum-2
+      - enum-3
+      - enum-4
+      - enum-5
+  -
+    name: test-enum-2
+    type: enum
+    entries:
+      - 
+        name: bool-true
+        value: 0x5A
+      -
+        name: bool-false
+        value: 0xA5
+  -
+    name: test-flags-1
+    type: flags
+    entries:
+      - flags-1
+      - flags-2
+      - flags-3
+      - flags-4
+      - flags-5
+  -
+    name: test-ref-1
+    type: ref
+    header: test/ref.h
+    pack_cb: test_ref_1_pack
+    unpack_cb: test_ref_1_unpack
+    struct: test_ref_1_st
+

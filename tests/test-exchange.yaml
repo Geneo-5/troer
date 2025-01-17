@@ -1,0 +1,4 @@
+schema: exchange
+operations:
+  -
+    name: start

@@ -1,0 +1,124 @@
+$id: https://github.com/Geneo-5/troer/src/troer/schema/trade.yaml
+$schema: https://json-schema.org/draft/2020-12/schema
+
+$defs:
+  uint:
+    type: number
+    minimum: 0
+  name:
+    type: string
+    pattern: ^[a-zA-Z]([a-zA-Z0-9_-]*[a-zA-Z0-9]+)?$
+  prefix:
+    type: string
+    pattern: ^[a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9]+)?$
+  version:
+    type: string
+    pattern: ^[0-9]+.[0-9]+.[0-9]+$
+
+titre: storage
+description: Storage schema
+type: object
+required: [ name, version, doc, schema ]
+additionalProperties: false
+properties:
+  name:
+    description: idl name (used like prefix)
+    $ref: '#/$defs/name'
+  prefix:
+    description: use specific prefix instead of name
+    $ref: '#/$defs/prefix'
+  version:
+    description: idl version
+    $ref: '#/$defs/version'
+  doc:
+    description: idl documentation
+    type: string
+  schema:
+    description: Schema compatibility level.
+    enum: [ storage ]
+
+  # headers:
+  #   description: List of additional header must be include by lib
+  #   type: array
+  #   minItems: 1
+  #   uniqueItems: true
+  #   items:
+  #     type: string
+  #     pattern: "^((<.+>)|([^<].+[^>]))$"
+
+  definitions:
+    description: |
+      List of type and constant definitions (enums, flags, const and extern ref).
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [ name, type ]
+      unevaluatedProperties: false
+      properties:
+        name:
+          $ref: '#/$defs/name'
+        type:
+          enum: [ const, enum, flags, ref ]
+        doc:
+          type: string
+        header:
+          description: header which already defines this value.
+          type: string
+          pattern: "^((<.+>)|([^<].+[^>]))$"
+      allOf:
+        -
+          if:
+            properties:
+              type:
+                const: const
+          then:
+            properties:
+              value:
+                type: [ string, number ]
+            anyOf:
+              - required: [ header ]
+              - required: [ value ]
+        -
+          if:
+            properties:
+              type:
+                enum: [ enum, flags ]
+          then:
+            required: [ entries ]
+            properties:
+              value-start:
+                description: Force the first value.
+                type: number
+              entries:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/$defs/name'
+                    - type: object
+                      required: [ name ]
+                      additionalProperties: False
+                      properties:
+                        name:
+                          $ref: '#/$defs/name'
+                        value:
+                          type: number
+                        doc:
+                          type: string
+              render-max:
+                description: Render the max members for this enum.
+                type: boolean
+        -
+          if:
+            properties:
+              type:
+                const: ref
+          then:
+            required: [ header, pack_cb, unpack_cb, struct ]
+            properties:
+              pack_cb:
+                type: string
+              unpack_cb:
+                type: string
+              struct:
+                type: string
