@@ -10,6 +10,9 @@ from troer import templates
 def newElement(name):
 	return globals()[f"Spec{name.title()}"]
 
+def get_align(elems):
+	return max([e.get_name().len for e in elems])
+
 class SpecElement:
 	def __init__(self, family, yaml):
 		self.family = family
@@ -30,6 +33,9 @@ class SpecElement:
 
 	def get(self, key, default=None):
 		return self.yaml.get(key, default)
+
+	def get_name(self):
+		return self.family.prefix + self.ident_name
 
 	def resolve_up(self, up):
 		if not self._super_resolved:
@@ -82,7 +88,8 @@ class SpecFamily(SpecElement):
 		super().__init__(self, spec)
 
 		self.header = set()
-		self.consts = OrderedDict()
+		self.defines = OrderedDict()
+		self.enums = OrderedDict()
 
 		last_exception = None
 		while len(self._resolution_list) > 0:
@@ -105,12 +112,18 @@ class SpecFamily(SpecElement):
 	def add_header(self, header):
 		self.header.add(header)
 
+	def add_define(self, name, define):
+		self.defines[name] = define
+	
+	def add_enum(self, name, enum):
+		self.enums[name] = enum
+
 	def add_unresolved(self, elem):
 		self._resolution_list.append(elem)
 
 	def _resolve_definitions(self):
 		for elem in self.yaml.get('definitions', []):
-			self.consts[elem['name']] = newElement(elem['type'])(self, elem)
+			newElement(elem['type'])(self, elem)
 
 	def _resolve_attribute(self):
 		pass
