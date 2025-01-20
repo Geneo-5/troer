@@ -1,3 +1,3 @@
-from .spec import SpecFamily
+from .spec import *
 
 __all__ = ["SpecFamily"]

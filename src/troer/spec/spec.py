@@ -6,36 +6,37 @@ from importlib.resources import open_text, read_text
 from Cheetah.Template import Template
 from troer import schemas
 from troer import templates
+from textwrap import wrap
 
 def newElement(name):
     return globals()[f"Spec{name.title()}"]
 
-def get_align(elems):
-    return max([e.get_name().len for e in elems])
+def make_doc(doc, indent=""):
+    if not doc:
+            return ""
+    if len(doc) < (80 - len(indent.replace("\t", " " * 8) + "/*  */")):
+        return f"{indent}/* {doc} */\n"
+    else:
+        s = 80 - len(indent.replace("\t", " " * 8) + " * ")
+        m = f"\n{indent} * ".join(wrap(doc, s))
+        return f"{indent}/*\n{indent} * {m}\n{indent} */\n"
+
+def align(f, s, a):
+    return f"{f}{' ' * (a - len(f))}{s}"
 
 class SpecElement:
     def __init__(self, family, yaml):
+        self.tmpl = None
         self.family = family
         self.yaml = yaml
+        self.doc = yaml.get('doc', None)
 
         if 'name' in self.yaml:
             self.name = self.yaml['name']
-            self.ident_name = self.name.replace('-', '_')
+            self.ident_name = self.family.prefix + self.name.replace('-', '_')
 
         self._super_resolved = False
         family.add_unresolved(self)
-
-    def __getitem__(self, key):
-        return self.yaml[key]
-
-    def __contains__(self, key):
-        return key in self.yaml
-
-    def get(self, key, default=None):
-        return self.yaml.get(key, default)
-
-    def get_name(self):
-        return self.family.prefix + self.ident_name
 
     def resolve_up(self, up):
         if not self._super_resolved:
@@ -45,16 +46,21 @@ class SpecElement:
     def resolve(self):
         pass
 
-    def rendering(self, mode):
-        raise Exception("Cannot randering SpecElement")
+    def rendering(self):
+        if self.tmpl:
+            tmpl = read_text(templates, f"{self.tmpl}.tmpl")
+            return Template(tmpl, self)
+        else:
+            raise Exception("Cannot randering SpecElement")
 
 class ConstElement(SpecElement):
     def __init__(self, family, yaml):
         super().__init__(family, yaml)
-        self.hidden = False
         if 'header' in yaml:
             family.add_header(yaml['header'])
-            self.hidden = True
+            self.prefix = ''
+        else:
+            self.prefix = self.family.prefix
 
 class SpecConst(ConstElement):
     def __init__(self, family, yaml):
@@ -63,6 +69,20 @@ class SpecConst(ConstElement):
 class SpecEnum(ConstElement):
     def __init__(self, family, yaml):
         super().__init__(family, yaml)
+        self.tmpl = 'enum'
+        if 'header' not in yaml:
+            family.add_enum(self.name, self)
+        self.entries = []
+        for e in yaml['entries']:
+            if isinstance(e, str):
+                name = (self.prefix + e).replace('-', '_').upper()
+                value = None
+                doc = None
+            else:
+                name = (self.prefix + e['name']).replace('-', '_').upper()
+                value = e.get('value', None)
+                doc = e.get('doc', None)
+            self.entries.append((name, value, doc))
 
 class SpecFlags(ConstElement):
     def __init__(self, family, yaml):
@@ -79,11 +99,11 @@ class SpecFamily(SpecElement):
         self.schema = spec.get("schema", None)
         if not self.schema:
             raise YAMLError("Missing schema definition")
-        # with open_text("troer", "schema", f"{self.schema}.yaml", encoding="utf-8") as f:
         with open_text(schemas, f"{self.schema}.yaml") as f:
             schema = safe_load(f)
         validate(spec, schema)
 
+        self.prefix = ""
         self._resolution_list = []
         super().__init__(self, spec)
 
@@ -133,7 +153,8 @@ class SpecFamily(SpecElement):
 
     def resolve(self):
         self.resolve_up(super())
-        self.prefix = f"{self.yaml.get('prefix', self.ident_name)}_"
+        if 'prefix' in self.yaml:
+            self.prefix = self.yaml['prefix']
         self._resolve_definitions()
         self._resolve_attribute()
         if self.schema == "exchange":

@@ -10,7 +10,7 @@ $defs:
     pattern: ^[a-zA-Z]([a-zA-Z0-9_-]*[a-zA-Z0-9]+)?$
   prefix:
     type: string
-    pattern: ^[a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9]+)?$
+    pattern: ^[a-zA-Z]([a-zA-Z0-9_]+)?$
   version:
     type: string
     pattern: ^[0-9]+.[0-9]+.[0-9]+$
@@ -87,9 +87,6 @@ properties:
           then:
             required: [ entries ]
             properties:
-              value-start:
-                description: Force the first value.
-                type: number
               entries:
                 type: array
                 items:
@@ -102,7 +99,7 @@ properties:
                         name:
                           $ref: '#/$defs/name'
                         value:
-                          type: number
+                          type: [ string, number ]
                         doc:
                           type: string
               render-max:
@@ -114,11 +111,12 @@ properties:
               type:
                 const: ref
           then:
-            required: [ header, pack_cb, unpack_cb, struct ]
+            required: [ header, pack, unpack, struct ]
             properties:
-              pack_cb:
+              pack:
                 type: string
-              unpack_cb:
+              unpack:
                 type: string
               struct:
                 type: string
+

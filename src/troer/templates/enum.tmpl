@@ -1,0 +1,18 @@
+#if $doc
+/* $doc */
+#end if
+enum $ident_name {
+#for $n, $v, $d in $entries
+	#if $d
+		/* $d */
+	#end if
+	#if $v
+		$n = $v,
+	#else
+		$n,
+	#end if
+#end for
+#if 'render-max' in $yaml
+	${ident_name.upper()}_MAX
+#end if
+};
