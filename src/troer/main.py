@@ -4,15 +4,35 @@ from os import EX_OK, EX_DATAERR, EX_IOERR, EX_USAGE
 from argparse import ArgumentParser
 from .spec import *
 
-available_mode = {
+modes = {
+    "storage": [
+        "lib-header",
+        "lib-src",
+        # "json-header"
+        # "json-src"
+    ],
+    "exchange" : [
+        "lib-header",
+        "lib-src",
+        "json-header"
+        "json-src",
+        "user-header",
+        "user-src",
+        "server-header",
+        "server-src"
+    ]
+}
+
+
+mode_files = {
     "lib-header":    {"", ".h"},
     "lib-src":       {"", ".c"},
-    #	"json-header":   {"json-", ".h"},
-    #	"json-src":      {"json-", ".c"},
-    #	"user-header":   {"user-", ".h"},
-    #	"user-src":      {"user-", ".c"},
-    #	"server-header": {"srv-", ".h"},
-    #	"server-src":    {"srv-", ".c"},
+    "json-header":   {"json-", ".h"},
+    "json-src":      {"json-", ".c"},
+    "user-header":   {"user-", ".h"},
+    "user-src":      {"user-", ".c"},
+    "server-header": {"srv-", ".h"},
+    "server-src":    {"srv-", ".c"},
 }
 
 def build_mode(parsed, mode, out_file, cmp_out):
@@ -48,23 +68,20 @@ def cli():
         print("Choice --all xor --mode MODE", file=stderr)
         return EX_USAGE
 
-    if args.mode and args.mode not in available_mode:
-        print(f"Bad mode {args.mode} must be in [{available_mode.keys()}]", file=stderr)
-        return EX_USAGE
-
     try:
         parsed = SpecFamily(args.spec)
-    except Exception as e:
-        print(e)
-        return EX_DATAERR
-    try:
+
+        if args.mode and args.mode not in modes[parsed.schema]:
+            print(f"Bad mode {args.mode} must be in [{modes[parsed.schema]}]", file=stderr)
+            return EX_USAGE
+
         if args.mode:
             build_mode(parsed, args.mode, args.out_file, args.cmp_out)
         elif args.all:
-            for m in available_mode.keys():
+            for m in modes[parsed.schema]:
                 f = None
                 if args.out_file:
-                    prefix, ext = available_mode[m]
+                    prefix, ext = mode_files[m]
                     f = f"{args.out_file}/{prefix}{parsed.name}.{ext}"
                 build_mode(parsed, m, f, args.cmp_out)
     except Exception as e:
