@@ -102,9 +102,6 @@ properties:
                           type: [ string, number ]
                         doc:
                           type: string
-              render-max:
-                description: Render the max members for this enum.
-                type: boolean
         -
           if:
             properties:

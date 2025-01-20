@@ -16,14 +16,18 @@ definitions:
   -
     name: test-enum-1
     type: enum
-    doc: Test de doc
+    doc: |
+      Ceci est test super long. Ceci est un test super long. Ceci est un test
+      super long. Ceci est un test super long.
+      Ceci est une nouvelle phrase pour un test supesuper long. Ceci est un test super long. Ceci est un test
+      super long. Ceci est un test super long.
+      Ceci est une nouvelle phrase pour un test super long.
     entries:
       - enum-1
       - enum-2
       - enum-3
       - enum-4
       - enum-5
-    render-max: true
   -
     name: test-enum-2
     type: enum
