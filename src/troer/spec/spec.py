@@ -6,30 +6,43 @@ from importlib.resources import open_text, read_text
 from Cheetah.Template import Template
 from troer import schemas
 from troer import templates
-from textwrap import wrap
+from textwrap import fill
+from re import sub
 
 def newElement(name):
     return globals()[f"Spec{name.title()}"]
 
-def make_doc(doc, indent=""):
-    if not doc:
-            return ""
-    if len(doc) < (80 - len(indent.replace("\t", " " * 8) + "/*  */")):
-        return f"{indent}/* {doc} */\n"
-    else:
-        s = 80 - len(indent.replace("\t", " " * 8) + " * ")
-        m = f"\n{indent} * ".join(wrap(doc, s))
-        return f"{indent}/*\n{indent} * {m}\n{indent} */\n"
+def getDoc(yaml, shift=0):
+    d = yaml.get('doc', None)
+    size = 80 - shift
+    if d:
+        d = d.replace('\\\\\n','\\\\')
+        d = d.replace('\n\n','\\\\')
+        d = sub(' *\n *', ' ', d)
+        d = d.replace('\\\\','\n')
+        if '\n' in d:
+            o = ''
+            ii = ''
+            for l in d.split('\n'):
+                o += ii + fill(l, size, subsequent_indent=' * ')
+                o += "\n"
+                ii = " * "
+            d = o[:-1]
+        else:
+            d = fill(d, size, subsequent_indent=' * ')
 
-def align(f, s, a):
-    return f"{f}{' ' * (a - len(f))}{s}"
+        if '\n' in d:
+            d = f"/*\n * {d}\n */"
+        else:
+            d = f"/* {d} */"
+    return d
 
 class SpecElement:
     def __init__(self, family, yaml):
         self.tmpl = None
         self.family = family
         self.yaml = yaml
-        self.doc = yaml.get('doc', None)
+        self.doc = getDoc(yaml)
 
         if 'name' in self.yaml:
             self.name = self.yaml['name']
@@ -71,7 +84,7 @@ class SpecEnum(ConstElement):
         super().__init__(family, yaml)
         self.tmpl = 'enum'
         if 'header' not in yaml:
-            family.add_enum(self.name, self)
+            family.add_const(self.name, self)
         self.entries = []
         for e in yaml['entries']:
             if isinstance(e, str):
@@ -81,7 +94,7 @@ class SpecEnum(ConstElement):
             else:
                 name = (self.prefix + e['name']).replace('-', '_').upper()
                 value = e.get('value', None)
-                doc = e.get('doc', None)
+                doc = getDoc(e, 8)
             self.entries.append((name, value, doc))
 
 class SpecFlags(ConstElement):
@@ -108,8 +121,7 @@ class SpecFamily(SpecElement):
         super().__init__(self, spec)
 
         self.header = set()
-        self.defines = OrderedDict()
-        self.enums = OrderedDict()
+        self.consts = OrderedDict()
 
         last_exception = None
         while len(self._resolution_list) > 0:
@@ -132,11 +144,8 @@ class SpecFamily(SpecElement):
     def add_header(self, header):
         self.header.add(header)
 
-    def add_define(self, name, define):
-        self.defines[name] = define
-
-    def add_enum(self, name, enum):
-        self.enums[name] = enum
+    def add_const(self, name, const):
+        self.consts[name] = const
 
     def add_unresolved(self, elem):
         self._resolution_list.append(elem)

@@ -10,7 +10,7 @@
 #end if
 #end for
 
-#for $e in $enums:
-${enums[e].rendering()}
+#for $e in $consts:
+${consts[e].rendering()}
 #end for
 \#endif /* _${ident_name.upper()}_H */

@@ -18,9 +18,9 @@ definitions:
     type: enum
     doc: |
       Ceci est test super long. Ceci est un test super long. Ceci est un test
-      super long. Ceci est un test super long.
-      Ceci est une nouvelle phrase pour un test supesuper long. Ceci est un test super long. Ceci est un test
-      super long. Ceci est un test super long.
+      super long. Ceci est un test super long. Ceci est un test super long.
+      Ceci est un test super long. Ceci est un test super long.\\
+      \\
       Ceci est une nouvelle phrase pour un test super long.
     entries:
       - enum-1
@@ -39,6 +39,9 @@ definitions:
       -
         name: bool-false
         value: 0xA5
+        doc: |
+          test test test test test test test test test test test test test test
+          test test test
   -
     name: test-flags-1
     type: flags
