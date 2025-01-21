@@ -1,0 +1,12 @@
+int
+${ident_name}_check(enum ${ident_name} val)
+{
+	switch (val) {
+#for $n, _, _ in $entries
+	case $n:
+#end for
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}

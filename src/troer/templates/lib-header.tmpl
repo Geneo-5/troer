@@ -13,4 +13,8 @@
 #for $e in $consts:
 ${consts[e].rendering()}
 #end for
+
+#for $f in $functions:
+${functions[f].getDeclaration()}
+#end for
 \#endif /* _${ident_name.upper()}_H */

@@ -62,10 +62,6 @@ properties:
           enum: [ const, enum, flags, ref ]
         doc:
           type: string
-        header:
-          description: header which already defines this value.
-          type: string
-          pattern: "^((<.+>)|([^<].+[^>]))$"
       allOf:
         -
           if:
@@ -76,9 +72,7 @@ properties:
             properties:
               value:
                 type: [ string, number ]
-            anyOf:
-              - required: [ header ]
-              - required: [ value ]
+            required: [ value ]
         -
           if:
             properties:
@@ -108,12 +102,22 @@ properties:
               type:
                 const: ref
           then:
-            required: [ header, pack, unpack, struct ]
+            required: [ header, pack, unpack, type ]
             properties:
+              header:
+                description: header which already defines this value.
+                type: string
+                pattern: "^((<.+>)|([^<].+[^>]))$"
               pack:
                 type: string
               unpack:
                 type: string
-              struct:
+              obj:
+                type: string
+              init:
+                type: string
+              fini:
+                type: string
+              check:
                 type: string
 

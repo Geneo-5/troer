@@ -8,7 +8,7 @@ definitions:
   -
     name: test-const-1
     type: const
-    header: <test/big-test.h>
+    value: "toto"
   -
     name: test-const-2
     type: const
@@ -57,5 +57,5 @@ definitions:
     header: test/ref.h
     pack: test_ref_1_pack
     unpack: test_ref_1_unpack
-    struct: test_ref_1_st
+    obj: test_ref_1_st
 

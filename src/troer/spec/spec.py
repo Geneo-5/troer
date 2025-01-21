@@ -37,6 +37,28 @@ def getDoc(yaml, shift=0):
             d = f"/* {d} */"
     return d
 
+class Dpack:
+    def __init__(self, type, init, fini, pack, unpack, check):
+        self.type = type
+        self.init = init
+        self.pack = pack
+        self.unpack = unpack
+        self.fini = fini
+        self.check = check
+
+class Function:
+    def __init__(self, tmpl, ctx):
+        self.tmpl = tmpl
+        self.ctx = ctx
+
+    def getDeclaration(self):
+        tmpl = read_text(templates, f"{self.tmpl}-h.tmpl")
+        return Template(tmpl, self.ctx)
+
+    def getDefinition(self):
+        tmpl = read_text(templates, f"{self.tmpl}-c.tmpl")
+        return Template(tmpl, self.ctx)
+
 class SpecElement:
     def __init__(self, family, yaml):
         self.tmpl = None
@@ -66,44 +88,53 @@ class SpecElement:
         else:
             raise Exception("Cannot randering SpecElement")
 
-class ConstElement(SpecElement):
-    def __init__(self, family, yaml):
-        super().__init__(family, yaml)
-        if 'header' in yaml:
-            family.add_header(yaml['header'])
-            self.prefix = ''
-        else:
-            self.prefix = self.family.prefix
-
-class SpecConst(ConstElement):
+class SpecConst(SpecElement):
     def __init__(self, family, yaml):
         super().__init__(family, yaml)
 
-class SpecEnum(ConstElement):
+class SpecEnum(SpecElement):
     def __init__(self, family, yaml):
         super().__init__(family, yaml)
         self.tmpl = 'enum'
-        if 'header' not in yaml:
-            family.add_const(self.name, self)
+        family.addConst(self.name, self)
         self.entries = []
         for e in yaml['entries']:
             if isinstance(e, str):
-                name = (self.prefix + e).replace('-', '_').upper()
+                name = (family.prefix + e).replace('-', '_').upper()
                 value = None
                 doc = None
             else:
-                name = (self.prefix + e['name']).replace('-', '_').upper()
+                name = (family.prefix + e['name']).replace('-', '_').upper()
                 value = e.get('value', None)
                 doc = getDoc(e, 8)
             self.entries.append((name, value, doc))
+        #name = f'{self.ident_name}_MAX'.upper()
+        #self.entries.append((name, None, None))
+        dpack = Dpack(f'enum {self.ident_name}', \
+                      None, \
+                      None, \
+                      'dpack_encode_int({}, {})', \
+                      'dpack_decode_int({}, {})', \
+                      f'{self.ident_name}_check({{}})')
+        family.addSerializer(self.name, dpack)
+        family.addFunction(self.name, Function("enumCheck", self))
 
-class SpecFlags(ConstElement):
+class SpecFlags(SpecElement):
     def __init__(self, family, yaml):
         super().__init__(family, yaml)
 
-class SpecRef(ConstElement):
+class SpecRef(SpecElement):
     def __init__(self, family, yaml):
         super().__init__(family, yaml)
+        type = yaml['obj']
+        pack = yaml['pack']
+        unpack = yaml['unpack']
+        init = yaml.get('init', None)
+        fini = yaml.get('fini', None)
+        check = yaml.get('check', None)
+        dpack = Dpack(type, init, fini, pack, unpack, check)
+        family.addHeader(yaml['header'])
+        family.addSerializer(self.name, dpack)
 
 class SpecFamily(SpecElement):
     def __init__(self, spec_path):
@@ -122,6 +153,8 @@ class SpecFamily(SpecElement):
 
         self.header = set()
         self.consts = OrderedDict()
+        self.serial = OrderedDict()
+        self.functions = OrderedDict()
 
         last_exception = None
         while len(self._resolution_list) > 0:
@@ -141,11 +174,17 @@ class SpecFamily(SpecElement):
             if len(resolved) == 0:
                 raise last_exception
 
-    def add_header(self, header):
+    def addHeader(self, header):
         self.header.add(header)
 
-    def add_const(self, name, const):
+    def addConst(self, name, const):
         self.consts[name] = const
+
+    def addSerializer(self, name, dpack):
+        self.serial[name] = dpack
+
+    def addFunction(self, name, fn):
+        self.functions[name] = fn
 
     def add_unresolved(self, elem):
         self._resolution_list.append(elem)
