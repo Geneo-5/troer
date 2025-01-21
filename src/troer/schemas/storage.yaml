@@ -1,4 +1,4 @@
-$id: https://github.com/Geneo-5/troer/src/troer/schema/trade.yaml
+$id: https://github.com/Geneo-5/troer/src/troer/schema/storage.yaml
 $schema: https://json-schema.org/draft/2020-12/schema
 
 $defs:
@@ -13,7 +13,7 @@ $defs:
     pattern: ^[a-zA-Z]([a-zA-Z0-9_]+)?$
   version:
     type: string
-    pattern: ^[0-9]+.[0-9]+.[0-9]+$
+    pattern: ^[0-9]+\.[0-9]+\.[0-9]+$
 
 titre: storage
 description: Storage schema
@@ -45,6 +45,27 @@ properties:
   #   items:
   #     type: string
   #     pattern: "^((<.+>)|([^<].+[^>]))$"
+
+  includes:
+    description: List of include troer files
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [ file ]
+      properties:
+        file:
+          description: yaml troer file
+          type: string
+        header:
+          description: Set include header file
+          type: string
+          pattern: "^((<.+>)|([^<].+[^>]))$"
+        version:
+          description: Version checker
+          type: string
+          pattern: ^[<>]?(=)?[0-9]+(\.[0-9]+(\.[0-9]+)?)?$
 
   definitions:
     description: |
@@ -120,4 +141,58 @@ properties:
                 type: string
               check:
                 type: string
+
+  structures:
+    description: |
+      List of type
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [ name, type ]
+      unevaluatedProperties: false
+      properties:
+        name:
+          $ref: '#/$defs/name'
+        type:
+          enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, str, struct, bits ]
+        doc:
+          type: string
+        if:
+          properties:
+            type:
+              const: struct
+        then:
+          required: [ entries ]
+          properties:
+            entries:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                required: [ name, type ]
+                unevaluatedProperties: false
+                properties:
+                  name:
+                    $ref: '#/$defs/name'
+                  type:
+                    enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, str, bits, ref ]
+                  doc:
+                    type: string
+                  repeated:
+                    type: [ boolean, integer ]
+                    if:
+                      type: integer
+                    then:
+                      minimun: 0
+                if:
+                  properties:
+                    type:
+                      const: ref
+                then:
+                  required: [ ref ]
+                  properties:
+                    ref:
+                      $ref: '#/$defs/name'
+
 
