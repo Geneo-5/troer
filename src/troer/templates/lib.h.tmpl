@@ -1,0 +1,26 @@
+/* SPDX-License-Identifier: LGPL-3.0-only */
+\#ifndef _${id.upper()}_H
+\#define _${id.upper()}_H
+
+#for $h in sorted($header):
+#if $h[0] == '<'
+\#include $h
+#else
+\#include "$h"
+#end if
+#end for
+
+\#if defined(CONFIG_${id.upper()}_ASSERT)
+\#include <stroll/assert.h>
+\#define ${assert_fn}(_cond) \
+         stroll_assert(_cond)
+\#else
+\#define ${assert_fn}(_cond)
+\#endif
+
+#for $e in $elems:
+${elems[e].getDeclaration()}
+#end for
+\#endif /* _${id.upper()}_H */
+
+## ex: filetype=c

@@ -1,0 +1,92 @@
+/**
+ * Check if input is valid ${pid}
+ *
+ * @param[in] val The value to test
+ *
+ * @return an errno like error code
+ * @retval 0       Success
+ * @retval -EINVAL Invalid value
+ */
+static inline int ${deprecated}
+${check}(${pid} val)
+{
+#if $min
+	if (val < ${min})
+		return -EINVAL;
+#end if
+#if $max
+	if (val >= ${max})
+		return -EINVAL;
+#end if
+	return 0;
+};
+
+/**
+ * Decode a ${pid} encoded according to the MessagePack format
+ *
+ * @param[inout] decoder decoder
+ * @param[out]   value   location where to store decoded value
+ *
+ * @return an errno like error code
+ * @retval 0         Success
+ * @retval -EPROTO   Not a valid MessagePack stream
+ * @retval -ENOTSUP  Unsupported MessagePack stream data
+ * @retval -ENOMSG   Invalid MessagePack stream data type or range
+ * @retval -EMSGSIZE Not enough space to complete operation
+ * @retval -ENOMEM   Memory allocation failure
+ *
+ * @warning
+ * - @p decoder *MUST* have been initialized using dpack_decoder_init_buffer()
+ *   or dpack_decoder_init_skip_buffer() before calling this function. Result is
+ *   undefined otherwise.
+ * - When compiled with the #CONFIG_DPACK_ASSERT_API build option disabled and
+ *   @p decoder is in error state before calling this function, result is
+ *   undefined. An assertion is triggered otherwise.
+ *
+ * @see
+ * - dpack_decoder_init_buffer()
+ * - dpack_decoder_init_skip_buffer()
+ */
+static inline int __dpack_nonull(1, 2) __dpack_nothrow __warn_result
+$deprecated}
+${decode}(struct dpack_decode * decoder,
+	  ${pid} * __restrict value)
+{
+	${assert_fn}(decoder);
+	${assert_fn}(value);
+
+	return dpack_decode_${dpack}(decoder, value);
+};
+
+/**
+ * Encode an ${pid} according to the MessagePack format
+ * @param[inout] encoder encoder
+ * @param[in]    value  ${pid} value to encode
+ *
+ * @return an errno like error code
+ * @retval 0         Success
+ * @retval -EMSGSIZE Not enough space to complete operation
+ * @retval -ENOMEM   Memory allocation failure
+ *
+ * @warning
+ * - @p encoder *MUST* have been initialized using dpack_encoder_init_buffer()
+ *   before calling this function. Result is undefined otherwise.
+ * - When compiled with the #CONFIG_DPACK_ASSERT_API build option disabled and
+ *   @p encoder is in error state before calling this function, result is
+ *   undefined. An assertion is triggered otherwise.
+ *
+ * @see
+ * - dpack_encode_int8()
+ * - dpack_encoder_init_buffer()
+ */
+static inline int __dpack_nonull(1) __dpack_nothrow __warn_result ${deprecated}
+${encode}(struct dpack_encoder * encoder,
+	  ${pid} value)
+{
+	${assert_fn}(encoder);
+	${assert_fn}(${check}(value) == 0);
+
+	return dpack_encode_${dpack}(encoder, value);
+};
+
+## ex: filetype=c

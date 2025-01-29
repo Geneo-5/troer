@@ -35,7 +35,7 @@ properties:
     type: string
   schema:
     description: Schema compatibility level.
-    enum: [ storage ]
+    enum: [ lib, storage, exchange ]
 
   # headers:
   #   description: List of additional header must be include by lib
@@ -158,41 +158,58 @@ properties:
           enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, str, struct, bits ]
         doc:
           type: string
-        if:
-          properties:
-            type:
-              const: struct
-        then:
-          required: [ entries ]
-          properties:
-            entries:
-              type: array
-              minItems: 1
-              items:
-                type: object
-                required: [ name, type ]
-                unevaluatedProperties: false
-                properties:
-                  name:
-                    $ref: '#/$defs/name'
-                  type:
-                    enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, str, bits, ref ]
-                  doc:
-                    type: string
-                  repeated:
-                    type: [ boolean, integer ]
-                    if:
-                      type: integer
-                    then:
-                      minimun: 0
-                if:
+        deprecated:
+          type: boolean
+      allOf:
+        -
+          if:
+            properties:
+              type:
+                enum: [ u8, u16, u32, u64, s8, s16, s32, s64 ]
+          then:
+            properties:
+              min:
+                type: integer
+              max:
+                type: integer
+        -
+          if:
+            properties:
+              type:
+                const: struct
+          then:
+            required: [ entries ]
+            properties:
+              entries:
+                type: array
+                minItems: 1
+                items:
+                  type: object
+                  required: [ name, type ]
+                  unevaluatedProperties: false
                   properties:
-                    type:
-                      const: ref
-                then:
-                  required: [ ref ]
-                  properties:
-                    ref:
+                    name:
                       $ref: '#/$defs/name'
+                    type:
+                      enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, str, bits, ref ]
+                    doc:
+                      type: string
+                    deprecated:
+                      type: boolean
+                    repeated:
+                      type: [ boolean, integer ]
+                      if:
+                        type: integer
+                      then:
+                        minimun: 0
+                  if:
+                    properties:
+                      type:
+                        const: ref
+                  then:
+                    required: [ ref ]
+                    properties:
+                      ref:
+                        $ref: '#/$defs/name'
 
 

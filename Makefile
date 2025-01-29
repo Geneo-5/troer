@@ -6,10 +6,12 @@ test:PATH+=:$(VENV)/bin
 test:
 	# @echo ====== Show help
 	# @troer --help
-	@echo ====== Test storage
-	@troer --spec tests/test-storage.yaml --all
+	@echo ====== Test lib
+	@troer tests/test-lib.yaml -Itests
+	# @echo ====== Test storage
+	# @troer tests/test-storage.yaml -Itests
 	# @echo ====== Test exchange
-	# @troer --spec tests/test-exchange.yaml --mode lib-header
+	# @troer tests/test-exchange.yaml -Itests
 
 install:
 	@python3 -m venv $(VENV)
