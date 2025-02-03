@@ -167,6 +167,7 @@ class Lib(Doc):
         self.libs      = {}
 
         self.header.add("<errno.h>")
+        self.header.add("<dpack/codec.h>")
 
         for i in self.yaml.get('structures', []):
             elem = newElem(i['type'], self, i)

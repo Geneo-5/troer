@@ -8,7 +8,10 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+.config.mk
 build/
+out/
+extern/
 develop-eggs/
 dist/
 downloads/

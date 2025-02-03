@@ -48,8 +48,8 @@ ${check}(${pid} val)
  * - dpack_decoder_init_skip_buffer()
  */
 static inline int __dpack_nonull(1, 2) __dpack_nothrow __warn_result
-$deprecated}
-${decode}(struct dpack_decode * decoder,
+$deprecated
+${decode}(struct dpack_decoder * decoder,
 	  ${pid} * __restrict value)
 {
 	${assert_fn}(decoder);
