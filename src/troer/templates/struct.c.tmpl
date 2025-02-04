@@ -1,0 +1,78 @@
+int
+${check}(${type} * value)
+{
+	${assert_fn}(value);
+
+#for $e in $entries
+	if (${e.check}(value->${e.name}))
+		return 1;
+
+#end for
+	return 0;
+}
+
+int
+${decode}(struct dpack_decoder * decoder,
+	  ${type} * __restrict value)
+{
+	${assert_fn}(decoder);
+	${assert_fn}(value);
+
+	int ret;
+
+#for $e in $entries
+	ret = ${e.decode}(decoder, &value->${e.name});
+	if (ret)
+		return ret;
+
+#end for
+
+	return 0;
+}
+
+int
+${encode}(struct dpack_encoder * encoder,
+	  ${type} * value)
+{
+	${assert_fn}(encoder);
+	${assert_fn}(${check}(value) == 0);
+
+	int ret;
+
+#for $e in $entries
+	ret = ${e.encode}(encoder, value->${e.name});
+	if (ret)
+		return ret;
+
+#end for
+
+	return 0;
+}
+
+int
+${init}(${type} * value)
+{
+	int ret = 0;
+
+#for $e in $entries
+#if $e.init
+	ret = ${e.init}(&val->${e.name});
+	if (ret)
+		return ret;
+
+#end if
+#end for
+	return ret;
+}
+
+void
+${fini}(${type} * value)
+{
+#for $e in $entries
+#if $e.fini
+	${e.fini}(val->${e.name});
+#end if
+#end for
+}
+
+## ex: filetype=c

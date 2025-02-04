@@ -13,7 +13,7 @@
 \#if defined(CONFIG_${id.upper()}_ASSERT)
 \#include <stroll/assert.h>
 \#define ${assert_fn}(_cond) \
-         stroll_assert(_cond)
+         stroll_assert("${id}", _cond)
 \#else
 \#define ${assert_fn}(_cond)
 \#endif

@@ -53,6 +53,8 @@ class Elem(Doc):
         self.decode    = f"{self.pre}decode_{self.id}"
         self.encode    = f"{self.pre}encode_{self.id}"
         self.check     = f"{self.pre}check_{self.id}"
+        self.init      = None
+        self.fini      = None
 
         self.deprecated = ""
         if self.yaml.get('deprecated', False):
@@ -77,7 +79,7 @@ class BoolElem(Elem):
         super().__init__(lib, yaml)
         self.tmpl  = 'scalar'
         self.dpack = 'bool'
-        self.pid = 'bool'
+        self.type = 'bool'
         lib.header.add("<dpack/scalar.h>")
         lib.header.add("<stdbool.h>")
 
@@ -86,7 +88,7 @@ class U8Elem(Elem):
         super().__init__(lib, yaml)
         self.tmpl  = 'scalar'
         self.dpack = 'uint8'
-        self.pid = 'uint8_t'
+        self.type = 'uint8_t'
         lib.header.add("<dpack/scalar.h>")
         lib.header.add("<stdint.h>")
 
@@ -95,7 +97,7 @@ class U16Elem(Elem):
         super().__init__(lib, yaml)
         self.tmpl  = 'scalar'
         self.dpack = 'uint16'
-        self.pid = 'uint16_t'
+        self.type = 'uint16_t'
         lib.header.add("<dpack/scalar.h>")
         lib.header.add("<stdint.h>")
 
@@ -104,7 +106,7 @@ class U32Elem(Elem):
         super().__init__(lib, yaml)
         self.tmpl  = 'scalar'
         self.dpack = 'uint32'
-        self.pid = 'uint32_t'
+        self.type = 'uint32_t'
         lib.header.add("<dpack/scalar.h>")
         lib.header.add("<stdint.h>")
 
@@ -113,7 +115,7 @@ class U64Elem(Elem):
         super().__init__(lib, yaml)
         self.tmpl  = 'scalar'
         self.dpack = 'uint64'
-        self.pid = 'uint64_t'
+        self.type = 'uint64_t'
         lib.header.add("<dpack/scalar.h>")
         lib.header.add("<stdint.h>")
 
@@ -122,7 +124,7 @@ class S8Elem(Elem):
         super().__init__(lib, yaml)
         self.tmpl  = 'scalar'
         self.dpack = 'int8'
-        self.pid = 'int8_t'
+        self.type = 'int8_t'
         lib.header.add("<dpack/scalar.h>")
         lib.header.add("<stdint.h>")
 
@@ -131,7 +133,7 @@ class S16Elem(Elem):
         super().__init__(lib, yaml)
         self.tmpl  = 'scalar'
         self.dpack = 'int16'
-        self.pid = 'int16_t'
+        self.type = 'int16_t'
         lib.header.add("<dpack/scalar.h>")
         lib.header.add("<stdint.h>")
 
@@ -140,7 +142,7 @@ class S32Elem(Elem):
         super().__init__(lib, yaml)
         self.tmpl  = 'scalar'
         self.dpack = 'int32'
-        self.pid = 'int32_t'
+        self.type = 'int32_t'
         lib.header.add("<dpack/scalar.h>")
         lib.header.add("<stdint.h>")
 
@@ -149,9 +151,22 @@ class S64Elem(Elem):
         super().__init__(lib, yaml)
         self.tmpl  = 'scalar'
         self.dpack = 'int64'
-        self.pid = 'int64_t'
+        self.type = 'int64_t'
         lib.header.add("<dpack/scalar.h>")
         lib.header.add("<stdint.h>")
+
+class StructElem(Elem):
+    def __init__(self, lib, yaml):
+        super().__init__(lib, yaml)
+        self.tmpl    = "struct"
+        self.type    = f"struct {self.pid}"
+        self.entries = []
+        self.init    = f"{self.pre}init_{self.id}"
+        self.fini    = f"{self.pre}fini_{self.id}"
+
+        for i in self.yaml['entries']:
+            lib.addElem(i['type'], i)
+            self.entries.append(lib.getElem(i['name']))
 
 class Lib(Doc):
     def __init__(self, yaml):
@@ -170,15 +185,18 @@ class Lib(Doc):
         self.header.add("<dpack/codec.h>")
 
         for i in self.yaml.get('structures', []):
-            elem = newElem(i['type'], self, i)
-            if elem.name in self.elems:
-                raise Exception(f"{elem.name} early exist")
-            self.elems[elem.name] = elem
+            self.addElem(i['type'], i)
 
-    def getElem(name):
-        if name in elems:
-            return elems[name]
-        return libs[name]
+    def addElem(self, type, *args):
+        elem = newElem(type, self, *args)
+        if elem.name in self.elems:
+            raise Exception(f"{elem.name} early exist")
+        self.elems[elem.name] = elem
+
+    def getElem(self, name):
+        if name in self.elems:
+            return self.elems[name]
+        return self.libs[name]
 
     def resolveLibs(self, includeDir):
         for f in self.yaml.get('includes', []):

@@ -202,14 +202,26 @@ properties:
                         type: integer
                       then:
                         minimun: 0
-                  if:
-                    properties:
-                      type:
-                        const: ref
-                  then:
-                    required: [ ref ]
-                    properties:
-                      ref:
-                        $ref: '#/$defs/name'
-
+                  allOf:
+                    -
+                      if:
+                        properties:
+                          type:
+                            const: ref
+                      then:
+                        required: [ ref ]
+                        properties:
+                          ref:
+                            $ref: '#/$defs/name'
+                    -
+                      if:
+                        properties:
+                          type:
+                            enum: [ u8, u16, u32, u64, s8, s16, s32, s64 ]
+                      then:
+                        properties:
+                          min:
+                            type: integer
+                          max:
+                            type: integer
 

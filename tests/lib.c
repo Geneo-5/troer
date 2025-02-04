@@ -1,22 +1,71 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 #define CONFIG_TEST_LIB_ASSERT
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
 #include <dpack/codec.h>
 #include "test-lib.h"
 
 __AFL_FUZZ_INIT();
 
+int pack_to_file(char * file)
+{
+	struct dpack_encoder  enc;
+	struct lib_afl        lib = {
+		.uint8 = 5,
+	};
+	char                 *out = NULL;
+	int                   fd;
+	int                   ret = EXIT_FAILURE;
+
+	fd = open(file, O_WRONLY | O_CREAT |  O_CLOEXEC, 0640);
+	if (fd < 0) {
+		printf("Cannot open file %s\n", file);
+		return 1;
+	}
+	
+	out = malloc(LIB_AFL_PACKED_SIZE_MAX);
+	if (!out) {
+		printf("Cannot alloc %d io\n", LIB_AFL_PACKED_SIZE_MAX);
+		out = NULL;
+		goto error;
+	}
+
+	dpack_encoder_init_buffer(&enc, out, LIB_AFL_PACKED_SIZE_MAX);
+	if (lib_encode_afl(&enc, &lib)) {
+		printf("Fail to encode lib_afl\n");
+		goto error;
+	}
+
+	dpack_encoder_fini(&enc, DPACK_DONE);
+	if (write(fd, out, dpack_encoder_space_used(&enc)) < 0) {
+		printf("Fail to write %s file\n", file);
+		goto error;
+	}
+
+	ret = 0;
+error:
+	close(fd);
+	free(out);
+	return ret;
+}
+
+
 int main(int argc, char * const argv[])
 {
 	struct dpack_decoder   dec;
 	struct dpack_encoder   enc;
-	struct afl_sample      spl;
+	struct lib_afl         lib;
 	char                  *out;
 	int                    ret = EXIT_FAILURE;
+	bool                   abort = DPACK_ABORT;
 
 	if (argc == 2)
 		return pack_to_file(argv[1]);
 
-	out = malloc(AFL_SAMPLE_PACKED_SIZE_MAX);
+	out = malloc(LIB_AFL_PACKED_SIZE_MAX);
 	if (!out)
 		return EXIT_FAILURE;
 
@@ -28,21 +77,23 @@ int main(int argc, char * const argv[])
 	while (__AFL_LOOP(10000)) {
 		size_t len = __AFL_FUZZ_TESTCASE_LEN;
 
-		if (len < AFL_SAMPLE_PACKED_SIZE_MIN)
+		if (len < LIB_AFL_PACKED_SIZE_MIN)
 			continue;
 
-		if (len > AFL_SAMPLE_PACKED_SIZE_MAX)
+		if (len > LIB_AFL_PACKED_SIZE_MAX)
 			continue;
 
-		assert(!afl_sample_init(&spl));
+		assert(!lib_init_afl(&lib));
 		dpack_decoder_init_buffer(&dec, (const char *)buf, len);
-		dpack_encoder_init_buffer(&enc, out, AFL_SAMPLE_PACKED_SIZE_MAX);
-		ret = afl_sample_unpack(&dec, &spl);
-		if (!ret)
-			assert(!afl_sample_pack(&enc, &spl));
-		dpack_encoder_fini(&enc);
+		dpack_encoder_init_buffer(&enc, out, LIB_AFL_PACKED_SIZE_MAX);
+		ret = lib_decode_afl(&dec, &lib);
+		if (!ret) {
+			assert(!lib_encode_afl(&enc, &lib));
+			abort = DPACK_DONE;
+		}
+		dpack_encoder_fini(&enc, abort);
 		dpack_decoder_fini(&dec);
-		afl_sample_fini(&spl);
+		lib_fini_afl(&lib);
 	}
 	free(out);
 	return ret;

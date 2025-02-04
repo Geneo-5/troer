@@ -2,11 +2,36 @@ schema: lib
 name: test-lib
 version: 0.0.1
 doc: Test storage schema and idl
-prefix: t3_
+prefix: lib_
 
 structures:
   -
-    name: uint8
-    type: u8
-    min: 5
-    max: 10
+    name: afl
+    type: struct
+    entries:
+      -
+        name: uint8
+        type: u8
+        min: 5
+        max: 10
+      -
+        name: uint16
+        type: u16
+      -
+        name: uint32
+        type: u32
+      -
+        name: uint64
+        type: u64
+      -
+        name: int8
+        type: s8
+      -
+        name: int16
+        type: s16
+      -
+        name: int32
+        type: s32
+      -
+        name: int64
+        type: s64

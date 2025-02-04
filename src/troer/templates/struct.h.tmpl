@@ -1,5 +1,20 @@
-\#define ${pid.upper()}_PACKED_SIZE_MIN DPACK_${dpack.upper()}_SIZE_MIN
-\#define ${pid.upper()}_PACKED_SIZE_MAX DPACK_${dpack.upper()}_SIZE_MAX
+\#define ${pid.upper()}_PACKED_SIZE_MIN \
+#for $e in $entries[:-1]
+	${e.pid.upper()}_PACKED_SIZE_MIN + \
+#end for
+	${entries[-1].pid.upper()}_PACKED_SIZE_MIN
+	
+\#define ${pid.upper()}_PACKED_SIZE_MAX \
+#for $e in $entries[:-1]
+	${e.pid.upper()}_PACKED_SIZE_MAX + \
+#end for
+	${entries[-1].pid.upper()}_PACKED_SIZE_MAX
+
+${type} {
+#for $e in $entries
+	${e.type} ${e.name};
+#end for
+};
 
 /**
  * Check if input is valid ${type}
@@ -10,19 +25,8 @@
  * @retval 0       Success
  * @retval -EINVAL Invalid value
  */
-static inline int ${deprecated}
-${check}(${type} value)
-{
-#if $min
-	if (value < ${min})
-		return -EINVAL;
-#end if
-#if $max
-	if (value >= ${max})
-		return -EINVAL;
-#end if
-	return 0;
-};
+int ${deprecated}
+${check}(${type} * value);
 
 /**
  * Decode a ${type} encoded according to the MessagePack format
@@ -50,15 +54,10 @@ ${check}(${type} value)
  * - dpack_decoder_init_buffer()
  * - dpack_decoder_init_skip_buffer()
  */
-static inline int __dpack_nonull(1, 2) __dpack_nothrow __warn_result ${deprecated}
+int
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
-{
-	${assert_fn}(decoder);
-	${assert_fn}(value);
-
-	return dpack_decode_${dpack}(decoder, value);
-};
+__dpack_nonull(1, 2) __dpack_nothrow __warn_result ${deprecated};
 
 /**
  * Encode an ${type} according to the MessagePack format
@@ -81,14 +80,12 @@ ${decode}(struct dpack_decoder * decoder,
  * - dpack_encode_int8()
  * - dpack_encoder_init_buffer()
  */
-static inline int __dpack_nonull(1) __dpack_nothrow __warn_result ${deprecated}
-${encode}(struct dpack_encoder * encoder,
-	  ${type} value)
-{
-	${assert_fn}(encoder);
-	${assert_fn}(${check}(value) == 0);
+int ${encode}(struct dpack_encoder * encoder,
+	  ${type} * value)
+__dpack_nonull(1) __dpack_nothrow __warn_result ${deprecated};
 
-	return dpack_encode_${dpack}(encoder, value);
-};
+int ${init}(${type} * value);
+
+void ${fini}(${type} * value);
 
 ## ex: filetype=c

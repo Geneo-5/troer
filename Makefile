@@ -37,8 +37,8 @@ test-%: tests/test-%.yaml | $(BUILDDIR)/troer-%
 		-o $(BUILDDIR)/troer-$*/test \
 		$(BUILDDIR)/troer-$*/*.c tests/$*.c \
 		-I$(BUILDDIR)/troer-$* \
-		-l$(DESTDIR)/usr/local/lib/libstroll.a
-		-l$(DESTDIR)/usr/local/lib/libdpack.a
+		$(DESTDIR)/usr/local/lib/libdpack.a \
+		$(DESTDIR)/usr/local/lib/libstroll.a
 
 install: venv dpack stroll
 
