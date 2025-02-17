@@ -21,6 +21,9 @@ class Doc():
             return self.__dict__[name]
         return self.yaml.get(name, None)
 
+    def __iter__(self):
+        return iter(self.__dict__ | self.yaml)
+
     def getDoc(self, shift=0):
         d = self.yaml['doc']
         size = 80 - shift
@@ -48,7 +51,7 @@ class Elem(Doc):
         self.assert_fn = lib.assert_fn
         self.id        = self.yaml['name'].replace("-", "_")
         self.pre       = self.lib.prefix
-        self.pid       = self.pre + self.name
+        self.pid       = self.pre + self.id
 
         self.decode    = f"{self.pre}decode_{self.id}"
         self.encode    = f"{self.pre}encode_{self.id}"
@@ -155,6 +158,24 @@ class S64Elem(Elem):
         lib.header.add("<dpack/scalar.h>")
         lib.header.add("<stdint.h>")
 
+class F32Elem(Elem):
+    def __init__(self, lib, yaml):
+        super().__init__(lib, yaml)
+        self.tmpl  = 'scalar'
+        self.dpack = 'float'
+        self.type = 'float_t'
+        lib.header.add("<dpack/scalar.h>")
+        lib.header.add("<math.h>")
+
+class F64Elem(Elem):
+    def __init__(self, lib, yaml):
+        super().__init__(lib, yaml)
+        self.tmpl  = 'scalar'
+        self.dpack = 'double'
+        self.type = 'double_t'
+        lib.header.add("<dpack/scalar.h>")
+        lib.header.add("<math.h>")
+
 class StructElem(Elem):
     def __init__(self, lib, yaml):
         super().__init__(lib, yaml)
@@ -167,6 +188,24 @@ class StructElem(Elem):
         for i in self.yaml['entries']:
             lib.addElem(i['type'], i)
             self.entries.append(lib.getElem(i['name']))
+            if 'repeated' in i:
+                lib.header.add("<dpack/array.h>")
+
+    def defineMinMax(self, t):
+        r = []
+        print(self.entries)
+        for e in self.entries:
+            if 'repeated' in e:
+                r.append(f"DPACK_ARRAY_FIXED_SIZE({e.repeated},{e.pid.upper()}_PACKED_SIZE_{t})")
+            else:
+                r.append(f"{e.pid.upper()}_PACKED_SIZE_{t}")
+        return "\\\n\t" + " + \\\n\t".join(r)
+
+    def defineMIN(self):
+        return self.defineMinMax("MIN")
+
+    def defineMAX(self):
+        return self.defineMinMax("MAX")
 
 class Lib(Doc):
     def __init__(self, yaml):

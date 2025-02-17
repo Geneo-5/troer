@@ -1,18 +1,15 @@
-\#define ${pid.upper()}_PACKED_SIZE_MIN \
-#for $e in $entries[:-1]
-	${e.pid.upper()}_PACKED_SIZE_MIN + \
-#end for
-	${entries[-1].pid.upper()}_PACKED_SIZE_MIN
+\#define ${pid.upper()}_PACKED_SIZE_MIN $defineMIN()
 	
-\#define ${pid.upper()}_PACKED_SIZE_MAX \
-#for $e in $entries[:-1]
-	${e.pid.upper()}_PACKED_SIZE_MAX + \
-#end for
-	${entries[-1].pid.upper()}_PACKED_SIZE_MAX
+\#define ${pid.upper()}_PACKED_SIZE_MAX $defineMAX()
 
 ${type} {
 #for $e in $entries
-	${e.type} ${e.name};
+#if 'repeated' in $e
+	unsigned int ${e.id}_nb;
+	${e.type} *${e.id};
+#else
+	${e.type} ${e.id};
+#end if
 #end for
 };
 

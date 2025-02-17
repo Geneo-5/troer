@@ -10,6 +10,9 @@ structures:
     type: struct
     entries:
       -
+        name: boolean
+        type: bool
+      -
         name: uint8
         type: u8
         min: 5
@@ -35,3 +38,16 @@ structures:
       -
         name: int64
         type: s64
+      -
+        name: float-number
+        type: f32
+        min: -5.6
+        max: 2.5
+      -
+        name: double-number
+        type: f64
+      -
+        name: int-array
+        type: s32
+        repeated: 10
+

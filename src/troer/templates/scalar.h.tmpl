@@ -11,7 +11,7 @@
  * @retval -EINVAL Invalid value
  */
 static inline int ${deprecated}
-${check}(${type} value)
+${check}(${type} value __unused)
 {
 #if $min
 	if (value < ${min})
@@ -57,7 +57,13 @@ ${decode}(struct dpack_decoder * decoder,
 	${assert_fn}(decoder);
 	${assert_fn}(value);
 
-	return dpack_decode_${dpack}(decoder, value);
+	int ret;
+
+	ret = dpack_decode_${dpack}(decoder, value);
+	if (ret)
+		return ret;
+
+	return ${check}(*value);
 };
 
 /**

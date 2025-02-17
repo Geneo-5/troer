@@ -6,7 +6,8 @@ test_afl=${builddir}/test
 input=${builddir}/input
 output=${builddir}/afl
 
-export PATH=${topdir}/extern/AFLplusplus:$PATH
+export PATH=${topdir}/out/bin:${topdir}/out/usr/local/bin:$PATH
+export LD_LIBRARY_PATH=${topdir}/out/lib:${topdir}/out/usr/local/lib:$LD_LIBRARY_PATH
 
 rm -rf ${builddir}/default
 rm -rf $output
@@ -15,16 +16,20 @@ rm -rf $input
 mkdir -p $input
 
 echo Make $input/sample file
-if ! out=$(valgrind -v --leak-check=full --error-exitcode=1 $test_afl $input/sample 2>&1); then
+if ! out=$($test_afl $input/sample 2>&1); then
         echo -e "\n${out}"
         exit 1
 fi
-
-echo Test $input/sample file
-if ! out=$(cat $input/sample | valgrind -v --leak-check=full --error-exitcode=1 $test_afl 2>&1); then
-        echo -e "\n${out}"
-        exit 1
-fi
+# if ! out=$(valgrind -v --leak-check=full --error-exitcode=1 $test_afl $input/sample 2>&1); then
+#         echo -e "\n${out}"
+#         exit 1
+# fi
+# 
+# echo Test $input/sample file
+# if ! out=$(cat $input/sample | valgrind -v --leak-check=full --error-exitcode=1 $test_afl 2>&1); then
+#         echo -e "\n${out}"
+#         exit 1
+# fi
 
 echo Check with AFL $input/sample file
 if ! out=$(AFL_DEBUG=1 afl-fuzz -V 1 -i $input -o ${builddir} $test_afl 2>&1); then

@@ -155,7 +155,7 @@ properties:
         name:
           $ref: '#/$defs/name'
         type:
-          enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, str, struct, bits ]
+          enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, f32, f64, str, struct ]
         doc:
           type: string
         deprecated:
@@ -176,6 +176,29 @@ properties:
           if:
             properties:
               type:
+                enum: [ f32, f64 ]
+          then:
+            properties:
+              min:
+                type: number
+              max:
+                type: number
+        -
+          if:
+            properties:
+              type:
+                const: str
+            then:
+              required: [ size ]
+              properties:
+                size:
+                  type: integer
+                pattern:
+                  type: string
+        -
+          if:
+            properties:
+              type:
                 const: struct
           then:
             required: [ entries ]
@@ -191,17 +214,15 @@ properties:
                     name:
                       $ref: '#/$defs/name'
                     type:
-                      enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, str, bits, ref ]
+                      enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, f32, f64, str, ref ]
                     doc:
                       type: string
                     deprecated:
                       type: boolean
                     repeated:
-                      type: [ boolean, integer ]
-                      if:
-                        type: integer
-                      then:
-                        minimun: 0
+                      type: integer
+                      minimum: 2
+                      maximum: 1024
                   allOf:
                     -
                       if:
@@ -224,4 +245,27 @@ properties:
                             type: integer
                           max:
                             type: integer
+                    -
+                      if:
+                        properties:
+                          type:
+                            enum: [ f32, f64 ]
+                      then:
+                        properties:
+                          min:
+                            type: number
+                          max:
+                            type: number
+                    -
+                      if:
+                        properties:
+                          type:
+                            const: str
+                        then:
+                          required: [ size ]
+                          properties:
+                            size:
+                              type: integer
+                            pattern:
+                              type: string
 
