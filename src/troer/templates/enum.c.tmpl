@@ -1,14 +1,113 @@
-int
-${ident_name}_check(enum ${ident_name} val)
-{
-	switch (val) {
-#for $n, _, _ in $entries
-	case $n:
+struct ${pid}_bisect_entry {
+	const char * str;
+	${type} value;
+};
+
+static const struct ${pid}_bisect_entry ${pid}_bisect_array[] = {
+#for $e in sorted($entries, key=lambda x: x.name)
+	{"${e.name}", ${e.pid.upper()}},
 #end for
-		return 0;
-	default:
-		return -EINVAL;
+};
+
+const char *
+${pid}_to_str(${type} value)
+{
+	unsigned long i;
+
+	for (i = 0; i < stroll_array_nr(${pid}_bisect_array); i++) {
+		if (${pid}_bisect_array[i].value == value)
+			return ${pid}_bisect_array[i].str;
 	}
+	return NULL;
 }
 
+static int
+${pid}_bisect_cmp(const void * __restrict key,
+		  const void * __restrict entry,
+		  void *                  data __unused)
+{
+	const char * k = key;
+	const char * e = ((const struct ${pid}_bisect_entry *)entry)->str;
+	return strcmp(k, e);
+}
+
+int
+${pid}_from_str(const char *str, ${type} *value)
+{
+	const struct ${pid}_bisect_entry *entry;
+
+	entry = stroll_array_bisect_search(str,
+					   ${pid}_bisect_array,
+					   stroll_array_nr(${pid}_bisect_array),
+					   sizeof(${pid}_bisect_array[0]),
+					   ${pid}_bisect_cmp,
+					   NULL);
+	if (!entry)
+		return -EINVAL;
+
+	*value = entry->value;
+	return 0;
+}
+
+int __nonull(1)
+${pid}_dump_str(const char ** buf, size_t nr)
+{
+	${assert_fn}(buf);
+	${assert_fn}(nr >= ${pid.upper()}_NB);
+
+	unsigned long i;
+
+	for (i = 0; i < stroll_array_nr(${pid}_bisect_array); i++) {
+		buf[i] = ${pid}_bisect_array[i].str;
+	}
+	return ${pid.upper()}_NB;
+}
+#if $json
+
+struct json_object *
+${decode}_to_json(struct dpack_decoder * decoder)
+{
+	${assert_fn}(decoder);
+
+	int ret;
+	${type} value;
+	const char *str;
+
+	ret = dpack_decode_int(decoder, (int *)&value);
+	if (ret) {
+		errno = -ret;
+		return NULL;
+	}
+
+	str = ${pid}_to_str(value);
+	if (!str) {
+		errno = EINVAL;
+		return NULL;
+	}
+	return json_object_new_string(str);
+};
+
+int
+${encode}_from_json(struct dpack_encoder * encoder,
+		    struct json_object * object)
+{
+	${assert_fn}(encoder);
+	${assert_fn}(object);
+
+	int ret;
+	const char * str;
+	${type} value;
+
+	errno = 0;
+	str = json_object_get_string(object);
+	if (errno)
+		return -errno;
+
+	ret = ${pid}_from_str(str, &value);
+	if (ret)
+		return ret;
+
+	return dpack_encode_int(encoder, (int)value);
+};
+#end if
 ## ex: filetype=c

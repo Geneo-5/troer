@@ -4,7 +4,36 @@ version: 0.0.1
 doc: Test storage schema and idl
 prefix: lib_
 
+# includes:
+#   -
+#     file: include-lib
+#     version: '<=1'
+
 structures:
+  -
+    name: on-off
+    type: enum
+    entries:
+      - 'on'
+      - 'off'
+      -
+        name: OK
+        doc: like on
+        value: 0
+      -
+        name: KO
+        doc: like off
+        value: LIB_OFF
+  -
+    name: subst
+    type: struct
+    entries:
+      -
+        name: test1
+        type: bool
+      -
+        name: test2
+        type: u16
   -
     name: afl
     type: struct
@@ -50,4 +79,17 @@ structures:
         name: int-array
         type: s32
         repeated: 10
+      -
+        name: string
+        type: str
+        size: 40
+        pattern: "[a-z][a-zA-Z0-9_]*"
+      -
+        name: ref
+        type: ref
+        ref: subst
+      -
+        name: enumumerate
+        type: ref
+        ref: on-off
 

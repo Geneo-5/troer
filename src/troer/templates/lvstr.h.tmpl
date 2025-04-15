@@ -2,86 +2,16 @@
  * Minimum size in bytes of an ${type} serialized according to
  * the @rstsubst{MessagePack int format}.
  */
-\#define ${pid.upper()}_PACKED_SIZE_MIN DPACK_INT_SIZE_MIN
+\#define ${pid.upper()}_PACKED_SIZE_MIN DPACK_LVSTR_CONST_SIZE(1)
 
 /**
  * Maximum size in bytes of an ${type} serialized according to
  * the @rstsubst{MessagePack int format}.
  */
-\#define ${pid.upper()}_PACKED_SIZE_MAX DPACK_INT_SIZE_MAX
+\#define ${pid.upper()}_PACKED_SIZE_MAX DPACK_LVSTR_CONST_SIZE(${size})
 
 /**
- * Number of elements in the ${type}
- */
-#set $NB=len($entries)
-\#define ${pid.upper()}_NB ${NB}
-
-/**
- * @enum ${pid}
- * $getDoc()
- **/
-${type} {
-#for $e in $entries
-	#if $e.hasDoc()
-	/**
-	 * $e.getDoc(8)
-	 */
-	#end if
-	#if 'value' in $e
-		${e.pid.upper()} = $e.value,
-	#else
-		${e.pid.upper()},
-	#end if
-#end for
-};
-
-/**
- * Convert ${type} to string format
- *
- * @param[in] value The value to convert
- *
- * @return a const string
- * @return NULL Invalid value
- */
-extern const char *
-${pid}_to_str(${type} value)
-__warn_result;
-
-/**
- * Search a string format of ${type}
- *
- * @param[in]  str   The string to research
- * @param[out] value The value founding
- *
- * @return an errno like error code
- * @retval 0       Success
- * @retval -EINVAL Invalid value
- */
-extern int
-${pid}_from_str(const char *str, ${type} *value)
- __nonull(1, 2) __warn_result;
-
-/**
- * Copy to array all pointer constant string of ${type}
- *
- * @param[in] buf The buffer to copy
- * @param[in] nr  The buffer size
- *
- * @return number of elements added
- *
- * @warning
- * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
- *   disabled and @p nr is lower than #${pid.upper()}_NB value, the
- *   result is undefined. An assertion is triggered otherwise.
- *
- * @see ${pid.upper()}_NB
- */
-extern int
-${pid}_dump_str(const char ** buf, size_t nr)
- __nonull(1);
-
-/**
- * Check if input is valid enum ${pid}
+ * Check if input is valid ${type}
  *
  * @param[in] value The value to test
  *
@@ -89,14 +19,22 @@ ${pid}_dump_str(const char ** buf, size_t nr)
  * @retval 0       Success
  * @retval -EINVAL Invalid value
  */
-static inline int __warn_result
-${check}(${type} value)
+#if not $pattern
+static inline int ${deprecated}
+${check}(${type} * value)
 {
-	return ${pid}_to_str(value) != NULL ? 0 : -EINVAL;
+	if ($size < stroll_lvstr_len(value))
+		return -EINVAL;
+
+	return 0;
 };
+#else
+int ${depreceted}
+${check}(${type} * value);
+#end if
 
 /**
- * Decode a enum ${pid} encoded according to the MessagePack format
+ * Decode a ${type} encoded according to the MessagePack format
  *
  * @param[inout] decoder decoder
  * @param[out]   value   location where to store decoded value
@@ -117,21 +55,30 @@ ${check}(${type} value)
  *   disabled and @p decoder is in error state before calling this function,
  *   result is undefined. An assertion is triggered otherwise.
  *
- * @sa
+ * @see
  * - dpack_decoder_init_buffer()
  * - dpack_decoder_init_skip_buffer()
  */
-static inline int __nonull(1, 2) __nothrow __warn_result
+static inline int __nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
 {
-	return dpack_decode_int(decoder, (int *)value);
+	${assert_fn}(decoder);
+	${assert_fn}(value);
+
+	ssize_t ret;
+
+	ret = dpack_decode_${dpack}_max(decoder, $size, value);
+	if (ret < 0)
+		return (int)ret;
+
+	return ${check}(value);
 };
 
 /**
- * Encode an enum ${pid} according to the MessagePack format
+ * Encode an ${type} according to the MessagePack format
  * @param[inout] encoder encoder
- * @param[in]    value   enum ${pid} value to encode
+ * @param[in]    value  ${pid} value to encode
  *
  * @return an errno like error code
  * @retval 0         Success
@@ -146,19 +93,22 @@ ${decode}(struct dpack_decoder * decoder,
  *   result is undefined. An assertion is triggered otherwise.
  *
  * @see
- * - dpack_encode_int8()
+ * - dpack_encode_${dpack}()
  * - dpack_encoder_init_buffer()
  */
-static inline int __nonull(1) __nothrow __warn_result
+static inline int __nonull(1) __nothrow __warn_result ${deprecated}
 ${encode}(struct dpack_encoder * encoder,
-	  ${type} value)
+	  ${type} * value)
 {
-	return dpack_encode_int(encoder, (int)value);
+	${assert_fn}(encoder);
+	${assert_fn}(${check}(value) == 0);
+
+	return dpack_encode_${dpack}(encoder, value);
 };
 
 #if $json
 /**
- * Decode a int encoded according to the MessagePack format
+ * Decode a ${type} encoded according to the MessagePack format
  *
  * @param[inout] decoder decoder
  *
@@ -186,7 +136,7 @@ struct json_object *
 ${decode}_to_json(struct dpack_decoder * decoder)
 __nonull(1) __nothrow __warn_result ${deprecated};
 /**
- * Encode an json string according to the MessagePack format
+ * Encode an json ${type} according to the MessagePack format
  * @param[inout] encoder encoder
  * @param[in]    object  json-object value to encode
  *
@@ -211,6 +161,16 @@ int
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 __nonull(1, 2) __nothrow __warn_result ${deprecated};
-
 #end if
+
+static inline int
+${init}(${type} * value) {
+	stroll_lvstr_init(value);
+	return 0;
+};
+
+static inline void
+${fini}(${type} * value){
+	stroll_lvstr_fini(value);
+};
 ## ex: filetype=c

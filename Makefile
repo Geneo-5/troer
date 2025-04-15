@@ -15,11 +15,12 @@ DESTDIR         := $(CURDIR)/out
 VENV            := $(DESTDIR)
 EXTRA_CFLAGS    := -I$(DESTDIR)/usr/local/include -I/usr/include \
 		   -Wall -Wextra -Wformat=2 -Wconversion -Wundef -Wshadow \
-		   -Wcast-qual -Wcast-align -Wmissing-declarations
-EXTRA_LDFLAGS   := -L$(DESTDIR)/usr/local/lib -L/usr/lib/x86_64-linux-gnu/
+		   -Wcast-qual -Wcast-align -Wmissing-declarations -Xanalyzer \
+		   -ggdb -g
+EXTRA_LDFLAGS   := -L$(DESTDIR)/usr/local/lib -L/usr/lib/x86_64-linux-gnu/ -rdynamic
 LLVM_VERSION    := 18
 CC              := $(DESTDIR)/usr/local/bin/afl-clang-lto
-MAKE_ARGS       := EXTRA_CFLAGS:="$(EXTRA_CFLAGS)" \
+MAKE_ARGS        = EXTRA_CFLAGS:="$(EXTRA_CFLAGS)" \
 		   EXTRA_LDFLAGS:="$(EXTRA_LDFLAGS)" \
 		   DESTDIR:="$(DESTDIR)" \
 		   PKG_CONFIG_PATH:="$(DESTDIR)/usr/local/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig" \
@@ -41,6 +42,7 @@ AFL_MAKE_ARGS   := BUILDDIR:=$(BUILDDIR)/afl DESTDIR:="$(DESTDIR)" \
 		   INTROSPECTION=1 LLVM_CONFIG=llvm-config-$(LLVM_VERSION)
 
 -include .config.mk
+-include $(EBUILDDIR)/helpers.mk
 
 export EBUILDDIR
 
@@ -64,18 +66,41 @@ $(subst r,R,$(subst s,S,$(subst t,T,$(subst u,U,$(subst v,V,$(subst w,W,\
 $(subst x,X,$(subst y,Y,$(subst z,Z,$(1))))))))))))))))))))))))))))
 endef
 
-test-%: tests/test-%.yaml | $(BUILDDIR)/troer-%
+test-%: EXTRA_CFLAGS+=$(call UP,-DCONFIG_TEST_$*_ASSERT)
+test-%: tests/test-%.yaml | $(BUILDDIR)/test-% \
+	$(BUILDDIR)/troer-% \
+	$(BUILDDIR)/troer-%-base \
+	$(BUILDDIR)/troer-%-builtin
 	@echo ====== Test $*
-	@troer $< -Itests -o $(BUILDDIR)/troer-$*
-	@$(CC) $(EXTRA_CFLAGS) $(EXTRA_LDFLAGS) \
-		-o $(BUILDDIR)/troer-$*/test \
-		$(BUILDDIR)/troer-$*/*.c tests/$*.c \
-		-I$(BUILDDIR)/troer-$* \
-		$(call UP,-DCONFIG_TEST_$*_ASSERT=1) \
-		$(DESTDIR)/usr/local/lib/libdpack.a \
-		$(DESTDIR)/usr/local/lib/libstroll.a
+	@troer --include tests $< $(BUILDDIR)/troer-$*-base
+	@troer --json --makefile builtin --include tests $< $(BUILDDIR)/troer-$*-builtin
+	@troer --json --makefile static  --include tests $< $(BUILDDIR)/troer-$*
+	@$(MAKE) -C $(BUILDDIR)/troer-$* $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/test-$* defconfig
+	@$(MAKE) -C $(BUILDDIR)/troer-$* $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/test-$* build
+	@$(MAKE) -C $(BUILDDIR)/troer-$* $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/test-$* install
+	@$(MAKE) -C $(BUILDDIR)/troer-$* $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/test-$* tags
+	@$(MAKE) -C $(BUILDDIR)/troer-$* $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/test-$* dist
+	@$(CC)  $(EXTRA_CFLAGS) \
+		$(call pkgconfig, --cflags libdpack) \
+		$(call pkgconfig, --cflags libstroll) \
+		$(call pkgconfig, --cflags libtest_$*) \
+		$(call pkgconfig, --cflags json-c) \
+		$(call pkgconfig, --cflags pcre2-8) \
+		$(EXTRA_LDFLAGS) -l:libdpack.a -l:libstroll.a -l:libjson-c.a \
+		-l:libpcre2-8.a -l:libtest_$*.a \
+		-o $(BUILDDIR)/test_$* \
+		tests/$*.c \
 
 install: venv dpack stroll
+
+clean:
+	@rm -rf $(BUILDDIR)/troer-*
+	@rm -rf $(BUILDDIR)/test-*
+	@rm -f  $(BUILDDIR)/test_*
+	@rm -f  $(DESTDIR)/usr/local/lib/libtest_*.a
+	@rm -f  $(DESTDIR)/usr/local/lib/libtest_*.so
+	@rm -f  $(DESTDIR)/usr/local/lib/pkgconfig/libtest_*.pc
+	@rm -f  $(DESTDIR)/usr/local/include/test-*.h
 
 clobber:
 	@rm -rf $(EXTERNDIR)
@@ -112,8 +137,8 @@ $(BUILDDIR)/stroll/.config: $(BUILDDIR)/stroll | $(STROLLDIR) $(EBUILDDIR) $(AFL
 
 $(DESTDIR)/usr/local/lib/libstroll.a: $(BUILDDIR)/stroll/.config
 	@echo ===== build stroll
-	$(MAKE) -C $(STROLLDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/stroll build
-	$(MAKE) -C $(STROLLDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/stroll install
+	@$(MAKE) -C $(STROLLDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/stroll build
+	@$(MAKE) -C $(STROLLDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/stroll install
 
 stroll: $(DESTDIR)/usr/local/lib/libstroll.a
 
@@ -136,9 +161,14 @@ dpack: $(DESTDIR)/usr/local/lib/libdpack.a
 #################### VENV
 
 $(VENV)/bin/python3:
+	@echo ===== Make python venv
 	@python3 -m venv $(VENV)
+	@$(PYTHON) -m pip install kconfiglib
+
+$(VENV)/bin/troer: $(VENV)/bin/python3
+	@echo ===== Install editable troer
 	@$(PYTHON) -m pip install -e .
 
-venv: $(VENV)/bin/python3
+venv: $(VENV)/bin/troer
 
-.PHONY: test install clobber
+.PHONY: all install clobber clean

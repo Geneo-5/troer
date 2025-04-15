@@ -1,10 +1,19 @@
+/**
+ * Minimum size in bytes of an ${type} serialized according to
+ * the @rstsubst{MessagePack int format}.
+ */
 \#define ${pid.upper()}_PACKED_SIZE_MIN DPACK_${dpack.upper()}_SIZE_MIN
+
+/**
+ * Maximum size in bytes of an ${type} serialized according to
+ * the @rstsubst{MessagePack int format}.
+ */
 \#define ${pid.upper()}_PACKED_SIZE_MAX DPACK_${dpack.upper()}_SIZE_MAX
 
 /**
  * Check if input is valid ${type}
  *
- * @param[in] val The value to test
+ * @param[in] value The value to test
  *
  * @return an errno like error code
  * @retval 0       Success
@@ -42,15 +51,15 @@ ${check}(${type} value __unused)
  * - @p decoder *MUST* have been initialized using dpack_decoder_init_buffer()
  *   or dpack_decoder_init_skip_buffer() before calling this function. Result is
  *   undefined otherwise.
- * - When compiled with the #CONFIG_DPACK_ASSERT_API build option disabled and
- *   @p decoder is in error state before calling this function, result is
- *   undefined. An assertion is triggered otherwise.
+ * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
+ *   disabled and @p decoder is in error state before calling this function,
+ *   result is undefined. An assertion is triggered otherwise.
  *
  * @see
  * - dpack_decoder_init_buffer()
  * - dpack_decoder_init_skip_buffer()
  */
-static inline int __dpack_nonull(1, 2) __dpack_nothrow __warn_result ${deprecated}
+static inline int __nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
 {
@@ -79,15 +88,15 @@ ${decode}(struct dpack_decoder * decoder,
  * @warning
  * - @p encoder *MUST* have been initialized using dpack_encoder_init_buffer()
  *   before calling this function. Result is undefined otherwise.
- * - When compiled with the #CONFIG_DPACK_ASSERT_API build option disabled and
- *   @p encoder is in error state before calling this function, result is
- *   undefined. An assertion is triggered otherwise.
+ * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
+ *   disabled and @p decoder is in error state before calling this function,
+ *   result is undefined. An assertion is triggered otherwise.
  *
  * @see
- * - dpack_encode_int8()
+ * - dpack_encode_${dpack}()
  * - dpack_encoder_init_buffer()
  */
-static inline int __dpack_nonull(1) __dpack_nothrow __warn_result ${deprecated}
+static inline int __nonull(1) __nothrow __warn_result ${deprecated}
 ${encode}(struct dpack_encoder * encoder,
 	  ${type} value)
 {
@@ -96,5 +105,62 @@ ${encode}(struct dpack_encoder * encoder,
 
 	return dpack_encode_${dpack}(encoder, value);
 };
+
+#if $json
+/**
+ * Decode a ${type} encoded according to the MessagePack format
+ *
+ * @param[inout] decoder decoder
+ *
+ * @return an json-c object or NULL if error
+ * @retval NULL      Error setted in errno.
+ * @retval -EPROTO   Not a valid MessagePack stream
+ * @retval -ENOTSUP  Unsupported MessagePack stream data
+ * @retval -ENOMSG   Invalid MessagePack stream data type or range
+ * @retval -EMSGSIZE Not enough space to complete operation
+ * @retval -ENOMEM   Memory allocation failure
+ *
+ * @warning
+ * - @p decoder *MUST* have been initialized using dpack_decoder_init_buffer()
+ *   or dpack_decoder_init_skip_buffer() before calling this function. Result is
+ *   undefined otherwise.
+ * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
+ *   disabled and @p decoder is in error state before calling this function,
+ *   result is undefined. An assertion is triggered otherwise.
+ *
+ * @see
+ * - dpack_decoder_init_buffer()
+ * - dpack_decoder_init_skip_buffer()
+ */
+struct json_object *
+${decode}_to_json(struct dpack_decoder * decoder)
+__nonull(1) __nothrow __warn_result ${deprecated};
+/**
+ * Encode an json ${type} according to the MessagePack format
+ * @param[inout] encoder encoder
+ * @param[in]    object  json-object value to encode
+ *
+ * @return an errno like error code
+ * @retval 0         Success
+ * @retval -EMSGSIZE Not enough space to complete operation
+ * @retval -ENOMEM   Memory allocation failure
+ * @retval -EINVAL   Invalid value
+ *
+ * @warning
+ * - @p encoder *MUST* have been initialized using dpack_encoder_init_buffer()
+ *   before calling this function. Result is undefined otherwise.
+ * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
+ *   disabled and @p decoder is in error state before calling this function,
+ *   result is undefined. An assertion is triggered otherwise.
+ *
+ * @see
+ * - dpack_encode_${dpack}()
+ * - dpack_encoder_init_buffer()
+ */
+int
+${encode}_from_json(struct dpack_encoder * encoder,
+		    struct json_object * object)
+__nonull(1, 2) __nothrow __warn_result ${deprecated};
+#end if
 
 ## ex: filetype=c

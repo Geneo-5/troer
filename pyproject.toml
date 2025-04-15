@@ -23,5 +23,6 @@ scripts.troer = "troer.main:cli"
 packages = ["src/troer"]
 artifacts = [
 	"src/troer/schema/*.yaml",
-	"src/troer/templates/*.tmpl"
+	"src/troer/templates/*.tmpl",
+	"src/troer/resources/*"
 ]

@@ -1,5 +1,13 @@
+/**
+ * Minimum size in bytes of an ${type} serialized according to
+ * the @rstsubst{MessagePack int format}.
+ */
 \#define ${pid.upper()}_PACKED_SIZE_MIN $defineMIN()
 	
+/**
+ * Maximum size in bytes of an ${type} serialized according to
+ * the @rstsubst{MessagePack int format}.
+ */
 \#define ${pid.upper()}_PACKED_SIZE_MAX $defineMAX()
 
 ${type} {
@@ -16,14 +24,15 @@ ${type} {
 /**
  * Check if input is valid ${type}
  *
- * @param[in] val The value to test
+ * @param[in] value The value to test
  *
  * @return an errno like error code
  * @retval 0       Success
  * @retval -EINVAL Invalid value
  */
-int ${deprecated}
-${check}(${type} * value);
+int
+${check}(${type} * value)
+__nonull(1) __warn_result ${deprecated};
 
 /**
  * Decode a ${type} encoded according to the MessagePack format
@@ -43,18 +52,21 @@ ${check}(${type} * value);
  * - @p decoder *MUST* have been initialized using dpack_decoder_init_buffer()
  *   or dpack_decoder_init_skip_buffer() before calling this function. Result is
  *   undefined otherwise.
- * - When compiled with the #CONFIG_DPACK_ASSERT_API build option disabled and
- *   @p decoder is in error state before calling this function, result is
- *   undefined. An assertion is triggered otherwise.
+ * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
+ *   disabled and @p decoder is in error state before calling this function,
+ *   result is undefined. An assertion is triggered otherwise.
+ * - @p value *MUST* have been initialized using ${init}()
+ *   before calling this function. Result is undefined otherwise.
  *
  * @see
  * - dpack_decoder_init_buffer()
  * - dpack_decoder_init_skip_buffer()
+ * - ${init}()
  */
 int
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
-__dpack_nonull(1, 2) __dpack_nothrow __warn_result ${deprecated};
+__nonull(1, 2) __nothrow __warn_result ${deprecated};
 
 /**
  * Encode an ${type} according to the MessagePack format
@@ -69,17 +81,32 @@ __dpack_nonull(1, 2) __dpack_nothrow __warn_result ${deprecated};
  * @warning
  * - @p encoder *MUST* have been initialized using dpack_encoder_init_buffer()
  *   before calling this function. Result is undefined otherwise.
- * - When compiled with the #CONFIG_DPACK_ASSERT_API build option disabled and
- *   @p encoder is in error state before calling this function, result is
- *   undefined. An assertion is triggered otherwise.
+ * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
+ *   disabled and @p decoder is in error state before calling this function,
+ *   result is undefined. An assertion is triggered otherwise.
+ * - @p value *MUST* have been initialized using ${init}()
+ *   before calling this function. Result is undefined otherwise.
  *
  * @see
  * - dpack_encode_int8()
  * - dpack_encoder_init_buffer()
+ * - ${init}()
  */
-int ${encode}(struct dpack_encoder * encoder,
+int
+${encode}(struct dpack_encoder * encoder,
 	  ${type} * value)
-__dpack_nonull(1) __dpack_nothrow __warn_result ${deprecated};
+__nonull(1) __nothrow __warn_result ${deprecated};
+
+#if $json
+struct json_object *
+${decode}_to_json(struct dpack_decoder * decoder)
+__nonull(1) __nothrow __warn_result ${deprecated};
+
+int
+${encode}_from_json(struct dpack_encoder * encoder,
+		    struct json_object * object)
+__nonull(1, 2) __nothrow __warn_result ${deprecated};
+#end if
 
 int ${init}(${type} * value);
 

@@ -1,4 +1,4 @@
-$id: https://github.com/Geneo-5/troer/src/troer/schema/storage.yaml
+$id: https://github.com/Geneo-5/troer/src/troer/schemas/troer.yaml
 $schema: https://json-schema.org/draft/2020-12/schema
 
 $defs:
@@ -14,6 +14,68 @@ $defs:
   version:
     type: string
     pattern: ^[0-9]+\.[0-9]+\.[0-9]+$
+  types:
+    if:
+      properties:
+        type:
+          enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, f32, f64, str, enum ]
+    then:
+      allOf:
+        - if:
+            properties:
+              type:
+                enum: [ u8, u16, u32, u64, s8, s16, s32, s64 ]
+          then:
+            properties:
+              min:
+                type: integer
+              max:
+                type: integer
+        - if:
+            properties:
+              type:
+                enum: [ f32, f64 ]
+          then:
+            properties:
+              min:
+                type: number
+              max:
+                type: number
+        - if:
+            properties:
+              type:
+                const: str
+          then:
+            required: [ size ]
+            properties:
+              size:
+                type: integer
+              pattern:
+                type: string
+                pattern: ^[^\^].*[^\$]$
+        - if:
+            properties:
+              type:
+                const: enum
+          then:
+            required: [ entries ]
+            properties:
+              entries:
+                type: array
+                minItems: 1
+                items:
+                  oneOf:
+                    - $ref: '#/$defs/name'
+                    - type: object
+                      required: [ name ]
+                      additionalProperties: False
+                      properties:
+                        name:
+                          $ref: '#/$defs/name'
+                        value:
+                          type: [ string, number ]
+                        doc:
+                          type: string
 
 titre: storage
 description: Storage schema
@@ -154,49 +216,13 @@ properties:
       properties:
         name:
           $ref: '#/$defs/name'
-        type:
-          enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, f32, f64, str, struct ]
         doc:
           type: string
         deprecated:
           type: boolean
       allOf:
-        -
-          if:
-            properties:
-              type:
-                enum: [ u8, u16, u32, u64, s8, s16, s32, s64 ]
-          then:
-            properties:
-              min:
-                type: integer
-              max:
-                type: integer
-        -
-          if:
-            properties:
-              type:
-                enum: [ f32, f64 ]
-          then:
-            properties:
-              min:
-                type: number
-              max:
-                type: number
-        -
-          if:
-            properties:
-              type:
-                const: str
-            then:
-              required: [ size ]
-              properties:
-                size:
-                  type: integer
-                pattern:
-                  type: string
-        -
-          if:
+        - $ref: '#/$defs/types'
+        - if:
             properties:
               type:
                 const: struct
@@ -213,8 +239,6 @@ properties:
                   properties:
                     name:
                       $ref: '#/$defs/name'
-                    type:
-                      enum: [ bool, u8, u16, u32, u64, s8, s16, s32, s64, f32, f64, str, ref ]
                     doc:
                       type: string
                     deprecated:
@@ -224,8 +248,8 @@ properties:
                       minimum: 2
                       maximum: 1024
                   allOf:
-                    -
-                      if:
+                    - $ref: '#/$defs/types'
+                    - if:
                         properties:
                           type:
                             const: ref
@@ -234,38 +258,4 @@ properties:
                         properties:
                           ref:
                             $ref: '#/$defs/name'
-                    -
-                      if:
-                        properties:
-                          type:
-                            enum: [ u8, u16, u32, u64, s8, s16, s32, s64 ]
-                      then:
-                        properties:
-                          min:
-                            type: integer
-                          max:
-                            type: integer
-                    -
-                      if:
-                        properties:
-                          type:
-                            enum: [ f32, f64 ]
-                      then:
-                        properties:
-                          min:
-                            type: number
-                          max:
-                            type: number
-                    -
-                      if:
-                        properties:
-                          type:
-                            const: str
-                        then:
-                          required: [ size ]
-                          properties:
-                            size:
-                              type: integer
-                            pattern:
-                              type: string
 

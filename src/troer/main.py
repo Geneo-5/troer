@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 from sys import exit, stderr
 from os import EX_OK, EX_DATAERR, EX_IOERR, EX_USAGE
-from argparse import ArgumentParser
+from argparse import ArgumentParser, BooleanOptionalAction
 from subprocess import run
 from .elem import loadTroer
+from .makefile import Makefile
 from re import sub
 from traceback import print_exc
 
@@ -26,12 +27,22 @@ def indent(data):
 def cli():
     parser = ArgumentParser(description='IDL translatore to dpack serializer')
     parser.add_argument('spec', type=str)
-    parser.add_argument('-o', dest='outputDir', type=str, default=None)
-    parser.add_argument('-I', dest='includeDir', type=str, action='append',
-            default=['.'])
+    parser.add_argument('outputDir', type=str,
+            help='Save files generated in Output directory.')
+    parser.add_argument('-I', '--include', dest='includeDir', type=str, 
+            action='append', default=['.'],
+            help='Path to include directory. Can add multiple time.')
+    parser.add_argument('-j', '--json', action=BooleanOptionalAction,
+            default=False, help='add json to/from dpack encoder/decoder')
+    parser.add_argument('-m', '--makefile', default='no',
+            choices=['no', 'builtin', 'static', 'shared', 'both'],
+            help='Create ebuild makefile')
     args = parser.parse_args()
     try:
-        troer = loadTroer(args.spec, args.includeDir)
+        troer = loadTroer(args.spec, args.includeDir, json=args.json)
+        if args.makefile != 'no':
+            makefile = Makefile(troer, args.makefile)
+            makefile.rendering(args.outputDir)
         troer.rendering(args.outputDir, indent)
     except Exception:
         print_exc()

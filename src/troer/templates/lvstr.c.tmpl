@@ -1,0 +1,103 @@
+#if $pattern
+int ${deprecated}
+${check}(${type} * value)
+{
+	pcre2_code *re;
+	pcre2_match_data *match_data;
+	int err;
+	int errornumber;
+	PCRE2_SIZE erroroffset;
+
+	if ($size < stroll_lvstr_len(value))
+		return -EINVAL;
+
+	re = pcre2_compile((PCRE2_SPTR)"${pattern}",
+			   PCRE2_ZERO_TERMINATED,
+			   0,
+			   &errornumber,
+			   &erroroffset,
+			   NULL);
+	${assert_fn}(re);
+	if (!re)
+		return -EAGAIN;
+
+	match_data = pcre2_match_data_create_from_pattern(re, NULL);
+	err = pcre2_match(re,
+			  (PCRE2_SPTR)stroll_lvstr_cstr(value),
+			  PCRE2_ZERO_TERMINATED,
+			  0,
+			  PCRE2_ANCHORED | PCRE2_ENDANCHORED,
+			  match_data,
+			  NULL);
+	pcre2_code_free(re);
+	pcre2_match_data_free(match_data);
+	if (err < 0)
+		return -EINVAL;
+
+	return 0;
+}
+
+#end if
+#if $json
+struct json_object *
+${decode}_to_json(struct dpack_decoder * decoder)
+{
+	${assert_fn}(decoder);
+
+	int ret = 0;
+	ssize_t len;
+	${type} value;
+	struct json_object *obj = NULL;
+
+	${init}(&value);
+	len = dpack_decode_${dpack}(decoder, &value);
+	if (len < 0) {
+		errno = (int)-len;
+		goto error;
+	}
+
+	ret = ${check}(&value);
+	if (ret) {
+		errno = -ret;
+		goto error;
+	}
+
+	obj = json_object_new_${jsonc}(stroll_lvstr_cstr(&value));
+error:
+	${fini}(&value);
+	return obj;
+};
+
+int
+${encode}_from_json(struct dpack_encoder * encoder,
+		    struct json_object * object)
+{
+	${assert_fn}(encoder);
+	${assert_fn}(object);
+
+	int ret = 0;
+	${type} value;
+	const char * str;
+
+	${init}(&value);
+	errno = 0;
+	str = json_object_get_${jsonc}(object);
+	if (errno) {
+		ret = -errno;
+		goto error;
+	}
+	ret = stroll_lvstr_lend(&value, str);
+	if (ret)
+		goto error;
+
+	ret = ${check}(&value);
+	if (ret)
+		goto error;
+
+	ret = dpack_encode_${dpack}(encoder, &value);
+error:
+	${fini}(&value);
+	return ret;
+};
+#end if
+## ex: filetype=c

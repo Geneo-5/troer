@@ -1,8 +1,8 @@
 #!/bin/bash -e
 
 topdir=$(realpath $(dirname $0)/..)
-builddir=${topdir}/build/troer-lib
-test_afl=${builddir}/test
+builddir=${topdir}/build
+test_afl=${builddir}/test_$1
 input=${builddir}/input
 output=${builddir}/afl
 
@@ -20,16 +20,12 @@ if ! out=$($test_afl $input/sample 2>&1); then
         echo -e "\n${out}"
         exit 1
 fi
-# if ! out=$(valgrind -v --leak-check=full --error-exitcode=1 $test_afl $input/sample 2>&1); then
-#         echo -e "\n${out}"
-#         exit 1
-# fi
-# 
-# echo Test $input/sample file
-# if ! out=$(cat $input/sample | valgrind -v --leak-check=full --error-exitcode=1 $test_afl 2>&1); then
-#         echo -e "\n${out}"
-#         exit 1
-# fi
+
+echo Test $input/sample file
+if ! out=$(cat $input/sample | valgrind --leak-check=full --error-exitcode=1 $test_afl 2>&1); then
+        echo -e "\n${out}"
+        exit 1
+fi
 
 echo Check with AFL $input/sample file
 if ! out=$(AFL_DEBUG=1 afl-fuzz -V 1 -i $input -o ${builddir} $test_afl 2>&1); then
@@ -43,7 +39,6 @@ if [ $(ls ${builddir}/default/crashes/ | wc -l) -ne 0 ]; then
         echo ~~~~~~~~~~~~~~~~~~
         exit 1
 fi
-
 tmux new-session -d -s real
 
 ## Create the windows on which each node or .launch file is going to run
