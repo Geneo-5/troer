@@ -281,7 +281,6 @@ class EnumElem(Elem):
                 e = EnumEntry(self.lib, {'name':i})
             self.entries.append(e)
 
-
 class RefElem(Elem):
     def __init__(self, lib, yaml):
         super().__init__(lib, yaml)
@@ -326,6 +325,21 @@ class StructElem(Elem):
     def defineMAX(self):
         return self.defineMinMax("MAX")
 
+class DefrefElem(Elem):
+    def __init__(self, lib, yaml):
+        super().__init__(lib, yaml)
+        self.tmpl        = 'defRef'
+        self.type        = yaml.get("struct")
+        self.decode      = yaml.get("decode")
+        self.encode      = yaml.get("encode")
+        self.check       = yaml.get("check", None)
+        self.init        = yaml.get("init", None)
+        self.fini        = yaml.get("fini", None)
+        self.min_size    = yaml.get("min")
+        self.max_size    = yaml.get("max")
+        self.vref        = "&"
+        lib.header.add(yaml.get("header"))
+
 class Lib(Doc):
     def __init__(self, yaml, json=False):
         super().__init__(yaml)
@@ -347,6 +361,12 @@ class Lib(Doc):
         self.header.add("<stroll/cdefs.h>")
         if json:
             self.header.add("<json-c/json_object.h>")
+
+        for h in self.yaml.get('headers', []):
+            self.header.add(h)
+
+        for d in  self.yaml.get('definitions', []):
+            self.addElem(f"def{d['type']}", d)
 
         for i in self.yaml.get('structures', []):
             self.addElem(i['type'], i)

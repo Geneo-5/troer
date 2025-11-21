@@ -37,13 +37,15 @@ def cli():
     parser.add_argument('-m', '--makefile', default='no',
             choices=['no', 'builtin', 'static', 'shared', 'both'],
             help='Create ebuild makefile')
+    parser.add_argument('--indent', action=BooleanOptionalAction,
+            default=True, help='Use indent for rendering.')
     args = parser.parse_args()
     try:
         troer = loadTroer(args.spec, args.includeDir, json=args.json)
         if args.makefile != 'no':
             makefile = Makefile(troer, args.makefile)
             makefile.rendering(args.outputDir)
-        troer.rendering(args.outputDir, indent)
+        troer.rendering(args.outputDir, indent if args.indent else None)
     except Exception:
         print_exc()
         return EX_IOERR

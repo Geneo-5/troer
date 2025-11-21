@@ -99,14 +99,14 @@ properties:
     description: Schema compatibility level.
     enum: [ lib, storage, exchange ]
 
-  # headers:
-  #   description: List of additional header must be include by lib
-  #   type: array
-  #   minItems: 1
-  #   uniqueItems: true
-  #   items:
-  #     type: string
-  #     pattern: "^((<.+>)|([^<].+[^>]))$"
+  headers:
+    description: List of additional header must be include by lib
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      type: string
+      pattern: "^((<.+>)|([^<].+[^>]))$"
 
   includes:
     description: List of include troer files
@@ -185,17 +185,22 @@ properties:
               type:
                 const: ref
           then:
-            required: [ header, pack, unpack, type ]
+            required: [ header, struct, encode, decode, min, max, check ]
             properties:
               header:
                 description: header which already defines this value.
                 type: string
                 pattern: "^((<.+>)|([^<].+[^>]))$"
-              pack:
+              struct:
                 type: string
-              unpack:
+                pattern: "^(struct ).*"
+              min:
                 type: string
-              obj:
+              max:
+                type: string
+              encode:
+                type: string
+              decode:
                 type: string
               init:
                 type: string
