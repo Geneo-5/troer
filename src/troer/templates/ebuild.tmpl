@@ -25,6 +25,7 @@ builtin.a-obj        = @{lib.name}.o
 
 config-in   := Config.in
 config-h    := $(PACKAGE)/config.h
+config-obj  := config.o
 
 # Enable a bunch of warning options and disable -ffinite-math-only optimizations
 # so that floating point number classification macros such as isnan() works
@@ -49,24 +50,24 @@ common-ldflags        := $(common-cflags) \
                          -Wl,-z,start-stop-visibility=hidden
 
 @@if @shared
-solibs := lib@{lib.id}.so
-lib@{lib.id}.so-objs       = shared/@{lib.name}.o
-lib@{lib.id}.so-cflags     = $(filter-out -fpie -fPIE,$(common-cflags)) -fpic
-lib@{lib.id}.so-ldflags    = $(filter-out -fpie -fPIE,$(common-ldflags))
-lib@{lib.id}.so-ldflags   += -shared -Bsymbolic -fpic
-lib@{lib.id}.so-ldflags   += -Wl,-soname,lib@{lib.id}.so
-lib@{lib.id}.so-pkgconfig  =@{pkgconfig}
+solibs := lib@{lib.name}.so
+lib@{lib.name}.so-objs       = shared/@{lib.name}.o
+lib@{lib.name}.so-cflags     = $(filter-out -fpie -fPIE,$(common-cflags)) -fpic
+lib@{lib.name}.so-ldflags    = $(filter-out -fpie -fPIE,$(common-ldflags))
+lib@{lib.name}.so-ldflags   += -shared -Bsymbolic -fpic
+lib@{lib.name}.so-ldflags   += -Wl,-soname,lib@{lib.name}.so
+lib@{lib.name}.so-pkgconfig  =@{pkgconfig}
 
 @@end if
 @@if @static
-arlibs := lib@{lib.id}.a
-lib@{lib.id}.a-objs      = static/@{lib.name}.o
-lib@{lib.id}.a-cflags    = $(common-cflags)
-lib@{lib.id}.a-pkgconfig =@{pkgconfig}
+arlibs := lib@{lib.name}.a
+lib@{lib.name}.a-objs      = static/@{lib.name}.o
+lib@{lib.name}.a-cflags    = $(common-cflags)
+lib@{lib.name}.a-pkgconfig =@{pkgconfig}
 
 @@end if
 HEADERDIR := $(CURDIR)/include
-headers    = $(PACKAGE)/@{lib.name}.h
+headers    = @{lib.name}/lib.h
 
 define @{lib.id}_pkgconf_tmpl
 prefix=$(PREFIX)
@@ -74,19 +75,19 @@ exec_prefix=$${prefix}
 libdir=$${exec_prefix}/lib
 includedir=$${prefix}/include
 
-Name: lib@{lib.id}
+Name: lib@{lib.name}
 Description: @{lib.doc}
 Version: $(VERSION)
 Requires.private: @{pkgconfig}
 Requires:
 Cflags: -I$${includedir}
 #if @shared
-Libs: -L$${libdir} -Wl,--push-state,--as-needed -l@{lib.id} -Wl,--pop-state
+Libs: -L$${libdir} -Wl,--push-state,--as-needed -l@{lib.name} -Wl,--pop-state
 #end if
 endef
 
-pkgconfigs := lib@{lib.id}.pc
-lib@{lib.id}.pc-tmpl := @{lib.id}_pkgconf_tmp
+pkgconfigs := lib@{lib.name}.pc
+lib@{lib.name}.pc-tmpl := @{lib.id}_pkgconf_tmp
 
 ################################################################################
 # Source code tags generation
@@ -122,7 +123,7 @@ sphinxenv := \
 # Source distribution generation
 ################################################################################
 
-override distfiles = include/$(PACKAGE)/@{lib.name}.h \
+override distfiles = include/@{lib.name}/lib.h \
                      sphinx/license/gpl.rst \
                      sphinx/license/lgpl.rst \
                      sphinx/api.rst \

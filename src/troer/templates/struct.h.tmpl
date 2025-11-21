@@ -30,7 +30,7 @@ ${type} {
  * @retval 0       Success
  * @retval -EINVAL Invalid value
  */
-int
+extern int
 ${check}(${type} * value)
 __nonull(1) __warn_result ${deprecated};
 
@@ -63,7 +63,7 @@ __nonull(1) __warn_result ${deprecated};
  * - dpack_decoder_init_skip_buffer()
  * - ${init}()
  */
-int
+extern int
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
 __nonull(1, 2) __nothrow __warn_result ${deprecated};
@@ -92,24 +92,85 @@ __nonull(1, 2) __nothrow __warn_result ${deprecated};
  * - dpack_encoder_init_buffer()
  * - ${init}()
  */
-int
+extern int
 ${encode}(struct dpack_encoder * encoder,
 	  ${type} * value)
 __nonull(1) __nothrow __warn_result ${deprecated};
 
 #if $json
+/**
+ * Decode a ${type} encoded according to the MessagePack format
+ *
+ * @param[inout] decoder decoder
+ *
+ * @return an json-c object or NULL if error
+ * @retval NULL      Error setted in errno.
+ * @retval -EPROTO   Not a valid MessagePack stream
+ * @retval -ENOTSUP  Unsupported MessagePack stream data
+ * @retval -ENOMSG   Invalid MessagePack stream data type or range
+ * @retval -EMSGSIZE Not enough space to complete operation
+ * @retval -ENOMEM   Memory allocation failure
+ *
+ * @warning
+ * - @p decoder *MUST* have been initialized using dpack_decoder_init_buffer()
+ *   or dpack_decoder_init_skip_buffer() before calling this function. Result is
+ *   undefined otherwise.
+ * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
+ *   disabled and @p decoder is in error state before calling this function,
+ *   result is undefined. An assertion is triggered otherwise.
+ *
+ * @see
+ * - dpack_decoder_init_buffer()
+ * - dpack_decoder_init_skip_buffer()
+ */
 struct json_object *
 ${decode}_to_json(struct dpack_decoder * decoder)
 __nonull(1) __nothrow __warn_result ${deprecated};
 
-int
+/**
+ * Encode an json ${type} according to the MessagePack format
+ * @param[inout] encoder encoder
+ * @param[in]    object json-object value to encode
+ *
+ * @return an errno like error code
+ * @retval 0         Success
+ * @retval -EMSGSIZE Not enough space to complete operation
+ * @retval -ENOMEM   Memory allocation failure
+ * @retval -EINVAL   Invalid value
+ *
+ * @warning
+ * - @p encoder *MUST* have been initialized using dpack_encoder_init_buffer()
+ *   before calling this function. Result is undefined otherwise.
+ * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
+ *   disabled and @p decoder is in error state before calling this function,
+ *   result is undefined. An assertion is triggered otherwise.
+ *
+ * @see
+ * - dpack_encode_${dpack}()
+ * - dpack_encoder_init_buffer()
+ */
+extern int
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 __nonull(1, 2) __nothrow __warn_result ${deprecated};
 #end if
 
-int ${init}(${type} * value);
+/*
+ * Initialize an empty ${type}_.
+ * @param[out] value Length-Value String
+ *
+ * @return an arrno like error code
+ * @retval 0         Success
+ */
+extern int
+${init}(${type} * value)
+ __nonull(1) __warn_result ${deprecated};
 
-void ${fini}(${type} * value);
+/*
+ * Finalize an empty ${type}_.
+ * @param[inout] value Length-Value String
+ */
+extern void ${fini}(${type} * value)
+ __nonull(1) ${deprecated};
 
 ## ex: filetype=c

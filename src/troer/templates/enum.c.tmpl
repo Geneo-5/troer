@@ -9,7 +9,7 @@ static const struct ${pid}_bisect_entry ${pid}_bisect_array[] = {
 #end for
 };
 
-const char *
+extern const char * __warn_result ${deprecated}
 ${pid}_to_str(${type} value)
 {
 	unsigned long i;
@@ -21,19 +21,25 @@ ${pid}_to_str(${type} value)
 	return NULL;
 }
 
-static int
+static int __nonull(1, 2)
 ${pid}_bisect_cmp(const void * __restrict key,
 		  const void * __restrict entry,
 		  void *                  data __unused)
 {
+	${assert_fn}(key);
+	${assert_fn}(entry);
+
 	const char * k = key;
 	const char * e = ((const struct ${pid}_bisect_entry *)entry)->str;
 	return strcmp(k, e);
 }
 
-int
+extern int __nonull(1, 2) __warn_result ${deprecated}
 ${pid}_from_str(const char *str, ${type} *value)
 {
+	${assert_fn}(str);
+	${assert_fn}(value);
+
 	const struct ${pid}_bisect_entry *entry;
 
 	entry = stroll_array_bisect_search(str,
@@ -49,7 +55,7 @@ ${pid}_from_str(const char *str, ${type} *value)
 	return 0;
 }
 
-int __nonull(1)
+extern int __nonull(1) ${deprecated}
 ${pid}_dump_str(const char ** buf, size_t nr)
 {
 	${assert_fn}(buf);
@@ -64,7 +70,7 @@ ${pid}_dump_str(const char ** buf, size_t nr)
 }
 #if $json
 
-struct json_object *
+extern struct json_object * __nonull(1) __nothrow __warn_result ${deprecated}
 ${decode}_to_json(struct dpack_decoder * decoder)
 {
 	${assert_fn}(decoder);
@@ -87,7 +93,7 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 	return json_object_new_string(str);
 };
 
-int
+extern int __nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 {

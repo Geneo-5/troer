@@ -45,7 +45,7 @@ ${type} {
  */
 extern const char *
 ${pid}_to_str(${type} value)
-__warn_result;
+__warn_result ${deprecated};
 
 /**
  * Search a string format of ${type}
@@ -59,7 +59,7 @@ __warn_result;
  */
 extern int
 ${pid}_from_str(const char *str, ${type} *value)
- __nonull(1, 2) __warn_result;
+ __nonull(1, 2) __warn_result ${deprecated};
 
 /**
  * Copy to array all pointer constant string of ${type}
@@ -78,7 +78,7 @@ ${pid}_from_str(const char *str, ${type} *value)
  */
 extern int
 ${pid}_dump_str(const char ** buf, size_t nr)
- __nonull(1);
+ __nonull(1) ${deprecated};
 
 /**
  * Check if input is valid enum ${pid}
@@ -89,7 +89,7 @@ ${pid}_dump_str(const char ** buf, size_t nr)
  * @retval 0       Success
  * @retval -EINVAL Invalid value
  */
-static inline int __warn_result
+static inline int __warn_result ${deprecated}
 ${check}(${type} value)
 {
 	return ${pid}_to_str(value) != NULL ? 0 : -EINVAL;
@@ -121,7 +121,7 @@ ${check}(${type} value)
  * - dpack_decoder_init_buffer()
  * - dpack_decoder_init_skip_buffer()
  */
-static inline int __nonull(1, 2) __nothrow __warn_result
+static inline int __nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
 {
@@ -149,7 +149,7 @@ ${decode}(struct dpack_decoder * decoder,
  * - dpack_encode_int8()
  * - dpack_encoder_init_buffer()
  */
-static inline int __nonull(1) __nothrow __warn_result
+static inline int __nonull(1) __nothrow __warn_result ${deprecated}
 ${encode}(struct dpack_encoder * encoder,
 	  ${type} value)
 {
@@ -182,9 +182,10 @@ ${encode}(struct dpack_encoder * encoder,
  * - dpack_decoder_init_buffer()
  * - dpack_decoder_init_skip_buffer()
  */
-struct json_object *
+extern struct json_object *
 ${decode}_to_json(struct dpack_decoder * decoder)
 __nonull(1) __nothrow __warn_result ${deprecated};
+
 /**
  * Encode an json string according to the MessagePack format
  * @param[inout] encoder encoder
@@ -207,7 +208,7 @@ __nonull(1) __nothrow __warn_result ${deprecated};
  * - dpack_encode_${dpack}()
  * - dpack_encoder_init_buffer()
  */
-int
+extern int
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 __nonull(1, 2) __nothrow __warn_result ${deprecated};

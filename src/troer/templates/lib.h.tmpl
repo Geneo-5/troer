@@ -13,7 +13,7 @@
 #end if
 
 #if $kconfig
-\#include <${id}/config.h>
+\#include <${name}/config.h>
 #end if
 #for $h in sorted($header):
 #if $h[0] == '<'
@@ -32,7 +32,7 @@
 \#if defined(CONFIG_${id.upper()}_ASSERT)
 \#include <stroll/assert.h>
 \#define ${assert_fn}(_cond) \
-         stroll_assert("${id}", _cond)
+         stroll_assert("${name}", _cond)
 \#else
 \#define ${assert_fn}(_cond)
 \#endif

@@ -9,6 +9,7 @@ EXTERNDIR       := $(CURDIR)/extern
 EBUILDDIR       := $(EXTERNDIR)/ebuild
 DPACKDIR        := $(EXTERNDIR)/dpack
 STROLLDIR       := $(EXTERNDIR)/stroll
+DEPENDSDIR      := $(EXTERNDIR)/depends
 AFLDIR          := $(EXTERNDIR)/AFLplusplus
 BUILDDIR        := $(CURDIR)/build
 DESTDIR         := $(CURDIR)/out
@@ -74,7 +75,7 @@ test-%: tests/test-%.yaml | $(BUILDDIR)/test-% \
 	@echo ====== Test $*
 	@troer --include tests $< $(BUILDDIR)/troer-$*-base
 	@troer --json --makefile builtin --include tests $< $(BUILDDIR)/troer-$*-builtin
-	@troer --json --makefile static  --include tests $< $(BUILDDIR)/troer-$*
+	@troer --json --makefile both    --include tests $< $(BUILDDIR)/troer-$*
 	@$(MAKE) -C $(BUILDDIR)/troer-$* $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/test-$* defconfig
 	@$(MAKE) -C $(BUILDDIR)/troer-$* $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/test-$* build
 	@$(MAKE) -C $(BUILDDIR)/troer-$* $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/test-$* install
@@ -87,7 +88,7 @@ test-%: tests/test-%.yaml | $(BUILDDIR)/test-% \
 		$(call pkgconfig, --cflags json-c) \
 		$(call pkgconfig, --cflags pcre2-8) \
 		$(EXTRA_LDFLAGS) -l:libdpack.a -l:libstroll.a -l:libjson-c.a \
-		-l:libpcre2-8.a -l:libtest_$*.a \
+		-l:libpcre2-8.a -l:libtest-$*.a \
 		-o $(BUILDDIR)/test_$* \
 		tests/$*.c \
 
@@ -97,17 +98,17 @@ clean:
 	@rm -rf $(BUILDDIR)/troer-*
 	@rm -rf $(BUILDDIR)/test-*
 	@rm -f  $(BUILDDIR)/test_*
-	@rm -f  $(DESTDIR)/usr/local/lib/libtest_*.a
-	@rm -f  $(DESTDIR)/usr/local/lib/libtest_*.so
-	@rm -f  $(DESTDIR)/usr/local/lib/pkgconfig/libtest_*.pc
-	@rm -f  $(DESTDIR)/usr/local/include/test-*.h
+	@rm -f  $(DESTDIR)/usr/local/lib/libtest-*.a
+	@rm -f  $(DESTDIR)/usr/local/lib/libtest-*.so
+	@rm -f  $(DESTDIR)/usr/local/lib/pkgconfig/libtest-*.pc
+	@rm -rf $(DESTDIR)/usr/local/include/test-*
 
 clobber:
 	@rm -rf $(EXTERNDIR)
 	@rm -rf $(BUILDDIR)
 	@rm -rf $(DESTDIR)
 
-$(EXTERNDIR):
+$(EXTERNDIR) $(DEPENDSDIR):
 	@mkdir -p $@
 
 $(BUILDDIR)/% $(DESTDIR)/%:
@@ -163,12 +164,17 @@ dpack: $(DESTDIR)/usr/local/lib/libdpack.a
 $(VENV)/bin/python3:
 	@echo ===== Make python venv
 	@python3 -m venv $(VENV)
-	@$(PYTHON) -m pip install kconfiglib
 
 $(VENV)/bin/troer: $(VENV)/bin/python3
 	@echo ===== Install editable troer
 	@$(PYTHON) -m pip install -e .
 
 venv: $(VENV)/bin/troer
+
+.PHONY: pip-download
+pip-download: | $(DEPENDSDIR)
+	@echo ===== Download troer depends
+	@cd $(DEPENDSDIR); $(PYTHON) -m pip download $(CURDIR)
+	@cd $(DEPENDSDIR); $(PYTHON) -m pip download -r $(CURDIR)/install-depends.txt
 
 .PHONY: all install clobber clean

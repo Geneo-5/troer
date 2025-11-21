@@ -52,8 +52,13 @@ class Renderer():
     def doxyFunction(self, ref):
         return self.title(ref) + '\n' + self.doxyRef('function', ref)
 
-    def isElem(self, type):
-        return isinstance(self, globals()[f"{type.title()}Elem"])
+    def isElem(self, type: list[str] | str) -> bool:
+        if isinstance(type, str):
+            type = [ type ]
+        for t in type:
+            if isinstance(self, globals()[f"{t.title()}Elem"]):
+                return True
+        return False
 
     def rendering(self):
         raise Exception(f"Unimplemented function")
@@ -335,7 +340,6 @@ class Lib(Doc):
         self.header    = set()
         self.elems     = OrderedDict()
         self.libs      = {}
-        self.includeDir= ''
         self.kconfig   = False
 
         self.header.add("<errno.h>")
@@ -386,7 +390,10 @@ class Lib(Doc):
                 raise lastE
 
     def rendering(self, outputDir, indent=None):
-        self._rendering(outputDir, indent, 'lib.h', f'{self.includeDir}{self.name}.h')
+        if self.kconfig:
+            self._rendering(outputDir, indent, 'lib.h', f'include/{self.name}/lib.h')
+        else:
+            self._rendering(outputDir, indent, 'lib.h', f'{self.name}.h')
         self._rendering(outputDir, indent, 'lib.c', f'{self.name}.c')
 
 def newElem(type, * args):

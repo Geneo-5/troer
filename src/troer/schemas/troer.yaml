@@ -246,7 +246,7 @@ properties:
                     repeated:
                       type: integer
                       minimum: 2
-                      maximum: 1024
+                        #maximum: 1024
                   allOf:
                     - $ref: '#/$defs/types'
                     - if:

@@ -1,4 +1,4 @@
-int __nonull(1) __warn_result ${deprecated}
+extern int __nonull(1) __warn_result ${deprecated}
 ${check}(${type} * value)
 {
 	${assert_fn}(value);
@@ -40,7 +40,7 @@ ${decode}_array_${e.id}(struct dpack_decoder * decoder,
 
 #end if
 #end for
-int
+extern int __nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
 {
@@ -69,7 +69,7 @@ ${decode}(struct dpack_decoder * decoder,
 	return 0;
 }
 
-int
+extern int __nonull(1) __nothrow __warn_result ${deprecated}
 ${encode}(struct dpack_encoder * encoder,
 	  ${type} * value)
 {
@@ -132,7 +132,7 @@ ${decode}_array_${e.id}_to_json(struct dpack_decoder * decoder,
 
 #end if
 #end for
-struct json_object *
+extern struct json_object * __nonull(1) __nothrow __warn_result ${deprecated}
 ${decode}_to_json(struct dpack_decoder * decoder)
 {
 	${assert_fn}(decoder);
@@ -173,7 +173,7 @@ error:
 	return NULL;
 }
 
-int
+extern int __nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 {
@@ -227,9 +227,11 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 }
 
 #end if
-int
+extern int __nonull(1) __warn_result ${deprecated}
 ${init}(${type} * value __unused)
 {
+	${assert_fn}(value);
+
 	int ret = 0;
 
 #for $e in $entries
@@ -259,9 +261,11 @@ ${init}(${type} * value __unused)
 	return ret;
 }
 
-void
+extern void __nonull(1) ${deprecated}
 ${fini}(${type} * value __unused)
 {
+	${assert_fn}(value);
+
 #for $e in $entries
 #if 'repeated' in $e
 #if $e.fini

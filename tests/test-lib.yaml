@@ -78,7 +78,7 @@ structures:
       -
         name: int-array
         type: s32
-        repeated: 10
+        repeated: 4096
       -
         name: string
         type: str

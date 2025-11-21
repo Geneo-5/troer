@@ -16,6 +16,7 @@ dependencies = [
 	"jsonschema>=4.23",
 	"Cheetah3",
 	"packaging",
+	"kconfiglib",
 ]
 scripts.troer = "troer.main:cli"
 

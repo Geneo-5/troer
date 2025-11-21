@@ -2,13 +2,21 @@
  * Minimum size in bytes of an ${type} serialized according to
  * the @rstsubst{MessagePack int format}.
  */
+#if $isElem([ 'bool', 'f32', 'f64' ])
+\#define ${pid.upper()}_PACKED_SIZE_MIN DPACK_${dpack.upper()}_SIZE
+#else
 \#define ${pid.upper()}_PACKED_SIZE_MIN DPACK_${dpack.upper()}_SIZE_MIN
+#end if
 
 /**
  * Maximum size in bytes of an ${type} serialized according to
  * the @rstsubst{MessagePack int format}.
  */
+#if $isElem([ 'bool', 'f32', 'f64' ])
+\#define ${pid.upper()}_PACKED_SIZE_MAX DPACK_${dpack.upper()}_SIZE
+#else
 \#define ${pid.upper()}_PACKED_SIZE_MAX DPACK_${dpack.upper()}_SIZE_MAX
+#end if
 
 /**
  * Check if input is valid ${type}
@@ -132,9 +140,10 @@ ${encode}(struct dpack_encoder * encoder,
  * - dpack_decoder_init_buffer()
  * - dpack_decoder_init_skip_buffer()
  */
-struct json_object *
+extern struct json_object *
 ${decode}_to_json(struct dpack_decoder * decoder)
 __nonull(1) __nothrow __warn_result ${deprecated};
+
 /**
  * Encode an json ${type} according to the MessagePack format
  * @param[inout] encoder encoder
@@ -157,7 +166,7 @@ __nonull(1) __nothrow __warn_result ${deprecated};
  * - dpack_encode_${dpack}()
  * - dpack_encoder_init_buffer()
  */
-int
+extern int
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 __nonull(1, 2) __nothrow __warn_result ${deprecated};

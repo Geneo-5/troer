@@ -73,6 +73,41 @@ $e.doc
 
 Reference
 =========
+#set $D=[ $lib.assert_fn ]
+#set $E=[]
+#set $S=[]
+#set $F=[]
+#for $n in $lib.elems
+#set $e=$lib.elems[$n]
+#if $e.isElem('ref')
+#continue
+#end if
+#set $D += [ f'{e.packed_size}_MAX' ]
+#set $D += [ f'{e.packed_size}_MIN' ]
+#if $e.isElem('enum')
+#set $D += [ f'{e.pid.upper()}_NB' ]
+#set $E += [ e.pid ]
+#set $F += [ f'{e.pid}_to_str' ]
+#set $F += [ f'{e.pid}_from_str' ]
+#set $F += [ f'{e.pid}_dump_str' ]
+#end if
+#if $e.isElem('struct')
+#set $S += [ e.pid ]
+#end if
+#set $F += [ f'{e.check}' ]
+#set $F += [ f'{e.decode}' ]
+#set $F += [ f'{e.encode}' ]
+#if $lib.json
+#set $F += [ f'{e.encode}_from_json' ]
+#set $F += [ f'{e.decode}_to_json' ]
+#end if
+#if $e.fini
+#set $F += [ f'{e.fini}' ]
+#end if
+#if $e.init
+#set $F += [ f'{e.init}' ]
+#end if
+#end for
 
 Configuration macros
 --------------------
@@ -81,68 +116,25 @@ $doxyDefine(f"CONFIG_{id.upper()}_ASSERT")
 
 Macros
 ------
-#for $n in sorted(list($lib.elems) + [$lib.assert_fn])
-#if $n == $lib.assert_fn
+#for $n in sorted($D)
 $doxyDefine($n)
-#else
-#set $e=$lib.elems[$n]
-#if $e.isElem('ref')
-#continue
-#end if
-$doxyDefine(f'{e.packed_size}_MAX')
-$doxyDefine(f'{e.packed_size}_MIN')
-#if $e.isElem('enum')
-$doxyDefine(f'{e.pid.upper()}_NB')
-#end if
-#end if
 #end for
 
 Enums
 -----
-#for $n in sorted($lib.elems)
-#set $e=$lib.elems[$n]
-#if $e.isElem('enum')
-$doxyEnum(f'{e.pid}')
-#end if
+#for $n in sorted($E)
+$doxyEnum($n)
 #end for
 
 Structures
 ----------
-#for $n in sorted($lib.elems)
-#set $e=$lib.elems[$n]
-#if $e.isElem('struct')
-$doxyStruct(f'{e.pid}')
-#end if
+#for $n in sorted($S)
+$doxyStruct($n)
 #end for
 
 Functions
 ---------
-#set $l=[]
-#for $n in $lib.elems
-#set $e=$lib.elems[$n]
-#if $e.isElem('ref')
-#continue
-#end if
-#if $e.isElem('enum')
-#set $l += [f'{e.pid}_to_str']
-#set $l += [f'{e.pid}_from_str']
-#set $l += [f'{e.pid}_dump_str']
-#end if
-#set $l += [f'{e.check}']
-#set $l += [f'{e.decode}']
-#set $l += [f'{e.encode}']
-#if $lib.json
-#set $l += [f'{e.encode}_from_json']
-#set $l += [f'{e.decode}_to_json']
-#end if
-#if $e.fini
-#set $l += [f'{e.fini}']
-#end if
-#if $e.init
-#set $l += [f'{e.init}']
-#end if
-#end for
-#for $n in sorted($l)
+#for $n in sorted($F)
 $doxyFunction($n)
 #end for
 ## ex: filetype=rst

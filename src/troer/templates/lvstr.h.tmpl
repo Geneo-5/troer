@@ -20,17 +20,20 @@
  * @retval -EINVAL Invalid value
  */
 #if not $pattern
-static inline int ${deprecated}
+static inline int __nonull(1) __warn_result ${deprecated}
 ${check}(${type} * value)
 {
+	${assert_fn}(value);
+
 	if ($size < stroll_lvstr_len(value))
 		return -EINVAL;
 
 	return 0;
 };
 #else
-int ${depreceted}
-${check}(${type} * value);
+extern int
+${check}(${type} * value)
+__nonull(1) __warn_result ${deprecated};
 #end if
 
 /**
@@ -132,13 +135,14 @@ ${encode}(struct dpack_encoder * encoder,
  * - dpack_decoder_init_buffer()
  * - dpack_decoder_init_skip_buffer()
  */
-struct json_object *
+extern struct json_object *
 ${decode}_to_json(struct dpack_decoder * decoder)
 __nonull(1) __nothrow __warn_result ${deprecated};
+
 /**
  * Encode an json ${type} according to the MessagePack format
  * @param[inout] encoder encoder
- * @param[in]    object  json-object value to encode
+ * @param[in]    object json-object value to encode
  *
  * @return an errno like error code
  * @retval 0         Success
@@ -157,20 +161,43 @@ __nonull(1) __nothrow __warn_result ${deprecated};
  * - dpack_encode_${dpack}()
  * - dpack_encoder_init_buffer()
  */
-int
+extern int
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 __nonull(1, 2) __nothrow __warn_result ${deprecated};
 #end if
 
-static inline int
-${init}(${type} * value) {
+/*
+ * Initialize an empty stroll_lvstr_.
+ * @param[out] value Length-Value String
+ *
+ * @return an arrno like error code
+ * @retval 0         Success
+ *
+ * @see
+ * - stroll_lvstr_init()
+ */
+static inline int __nonull(1) __warn_result ${deprecated}
+${init}(${type} * value)
+{
+	${assert_fn}(value);
+
 	stroll_lvstr_init(value);
 	return 0;
 };
 
-static inline void
-${fini}(${type} * value){
+/*
+ * Finalize an empty stroll_lvstr_.
+ * @param[inout] value Length-Value String
+ *
+ * @see
+ * - stroll_lvstr_fini()
+ */
+static inline void __nonull(1) ${deprecated}
+${fini}(${type} * value)
+{
+	${assert_fn}(value);
+
 	stroll_lvstr_fini(value);
 };
 ## ex: filetype=c

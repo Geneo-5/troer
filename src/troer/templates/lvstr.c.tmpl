@@ -1,7 +1,9 @@
 #if $pattern
-int ${deprecated}
+extern int __nonull(1) __warn_result ${deprecated}
 ${check}(${type} * value)
 {
+	${assert_fn}(value);
+
 	pcre2_code *re;
 	pcre2_match_data *match_data;
 	int err;
@@ -39,7 +41,7 @@ ${check}(${type} * value)
 
 #end if
 #if $json
-struct json_object *
+extern struct json_object * __nonull(1) __nothrow __warn_result ${deprecated}
 ${decode}_to_json(struct dpack_decoder * decoder)
 {
 	${assert_fn}(decoder);
@@ -49,7 +51,12 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 	${type} value;
 	struct json_object *obj = NULL;
 
-	${init}(&value);
+	ret = ${init}(&value);
+	if (ret) {
+		errno = -ret;
+		return NULL;
+	}
+
 	len = dpack_decode_${dpack}(decoder, &value);
 	if (len < 0) {
 		errno = (int)-len;
@@ -68,7 +75,7 @@ error:
 	return obj;
 };
 
-int
+extern int __nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 {
@@ -79,7 +86,10 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 	${type} value;
 	const char * str;
 
-	${init}(&value);
+	ret = ${init}(&value);
+	if (ret)
+		return ret;
+
 	errno = 0;
 	str = json_object_get_${jsonc}(object);
 	if (errno) {

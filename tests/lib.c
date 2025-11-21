@@ -9,7 +9,7 @@
 #include <signal.h>
 #include <json-c/json_util.h>
 #include <json-c/json_tokener.h>
-#include <test_lib/test-lib.h>
+#include <test-lib/lib.h>
 
 __AFL_FUZZ_INIT();
 
@@ -44,7 +44,9 @@ pack_to_file(char * file)
 	int                   fd;
 	int                   ret = EXIT_FAILURE;
 
-	lib_init_afl(&lib);
+	if (lib_init_afl(&lib))
+		return ret;
+
 	lib.uint8 = 5;
 	lib.int_array_nb = 5;
 	stroll_lvstr_lend(&lib.string, "testPattern_1");
