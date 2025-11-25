@@ -39,9 +39,13 @@ def cli():
             help='Create ebuild makefile')
     parser.add_argument('--indent', action=BooleanOptionalAction,
             default=True, help='Use indent for rendering.')
+    parser.add_argument('--include-prefix', type=str, dest='include_prefix',
+            default=None, help='Path to directory to write include file')
+    parser.add_argument('--include-dir', type=str, dest='include_dir',
+            default=None, help='Path to directory to write include file')
     args = parser.parse_args()
     try:
-        troer = loadTroer(args.spec, args.includeDir, json=args.json)
+        troer = loadTroer(args.spec, args.includeDir, args)
         if args.makefile != 'no':
             makefile = Makefile(troer, args.makefile)
             makefile.rendering(args.outputDir)

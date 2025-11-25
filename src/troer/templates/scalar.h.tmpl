@@ -67,7 +67,7 @@ ${check}(${type} value __unused)
  * - dpack_decoder_init_buffer()
  * - dpack_decoder_init_skip_buffer()
  */
-static inline int __nonull(1, 2) __nothrow __warn_result ${deprecated}
+static inline int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
 {
@@ -104,7 +104,7 @@ ${decode}(struct dpack_decoder * decoder,
  * - dpack_encode_${dpack}()
  * - dpack_encoder_init_buffer()
  */
-static inline int __nonull(1) __nothrow __warn_result ${deprecated}
+static inline int __${pre}nonull(1) __nothrow __warn_result ${deprecated}
 ${encode}(struct dpack_encoder * encoder,
 	  ${type} value)
 {
@@ -142,7 +142,7 @@ ${encode}(struct dpack_encoder * encoder,
  */
 extern struct json_object *
 ${decode}_to_json(struct dpack_decoder * decoder)
-__nonull(1) __nothrow __warn_result ${deprecated};
+__${pre}nonull(1) __nothrow __warn_result ${deprecated};
 
 /**
  * Encode an json ${type} according to the MessagePack format
@@ -169,7 +169,7 @@ __nonull(1) __nothrow __warn_result ${deprecated};
 extern int
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
-__nonull(1, 2) __nothrow __warn_result ${deprecated};
+__${pre}nonull(1, 2) __nothrow __warn_result ${deprecated};
 #end if
 
 ## ex: filetype=c

@@ -32,7 +32,7 @@ ${type} {
  */
 extern int
 ${check}(${type} * value)
-__nonull(1) __warn_result ${deprecated};
+__${pre}nonull(1) __warn_result ${deprecated};
 
 /**
  * Decode a ${type} encoded according to the MessagePack format
@@ -66,7 +66,7 @@ __nonull(1) __warn_result ${deprecated};
 extern int
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
-__nonull(1, 2) __nothrow __warn_result ${deprecated};
+__${pre}nonull(1, 2) __nothrow __warn_result ${deprecated};
 
 /**
  * Encode an ${type} according to the MessagePack format
@@ -95,7 +95,7 @@ __nonull(1, 2) __nothrow __warn_result ${deprecated};
 extern int
 ${encode}(struct dpack_encoder * encoder,
 	  ${type} * value)
-__nonull(1) __nothrow __warn_result ${deprecated};
+__${pre}nonull(1) __nothrow __warn_result ${deprecated};
 
 #if $json
 /**
@@ -125,7 +125,7 @@ __nonull(1) __nothrow __warn_result ${deprecated};
  */
 struct json_object *
 ${decode}_to_json(struct dpack_decoder * decoder)
-__nonull(1) __nothrow __warn_result ${deprecated};
+__${pre}nonull(1) __nothrow __warn_result ${deprecated};
 
 /**
  * Encode an json ${type} according to the MessagePack format
@@ -152,7 +152,7 @@ __nonull(1) __nothrow __warn_result ${deprecated};
 extern int
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
-__nonull(1, 2) __nothrow __warn_result ${deprecated};
+__${pre}nonull(1, 2) __nothrow __warn_result ${deprecated};
 #end if
 
 /*
@@ -164,13 +164,13 @@ __nonull(1, 2) __nothrow __warn_result ${deprecated};
  */
 extern int
 ${init}(${type} * value)
- __nonull(1) __warn_result ${deprecated};
+ __${pre}nonull(1) __warn_result ${deprecated};
 
 /*
  * Finalize an empty ${type}_.
  * @param[inout] value Length-Value String
  */
 extern void ${fini}(${type} * value)
- __nonull(1) ${deprecated};
+ __${pre}nonull(1) ${deprecated};
 
 ## ex: filetype=c

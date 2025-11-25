@@ -7,6 +7,8 @@
 
 #if $kconfig
 \#include <${name}/lib.h>
+#else if $args.include_prefix
+\#include <${args.include_prefix}${name}.h>
 #else
 \#include "${name}.h"
 #end if

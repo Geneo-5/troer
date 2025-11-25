@@ -1,5 +1,5 @@
 #if $pattern
-extern int __nonull(1) __warn_result ${deprecated}
+extern int __${pre}nonull(1) __warn_result ${deprecated}
 ${check}(${type} * value)
 {
 	${assert_fn}(value);
@@ -41,7 +41,7 @@ ${check}(${type} * value)
 
 #end if
 #if $json
-extern struct json_object * __nonull(1) __nothrow __warn_result ${deprecated}
+extern struct json_object * __${pre}nonull(1) __nothrow __warn_result ${deprecated}
 ${decode}_to_json(struct dpack_decoder * decoder)
 {
 	${assert_fn}(decoder);
@@ -69,13 +69,13 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 		goto error;
 	}
 
-	obj = json_object_new_${jsonc}(stroll_lvstr_cstr(&value));
+	obj = json_object_new_string(stroll_lvstr_cstr(&value));
 error:
 	${fini}(&value);
 	return obj;
 };
 
-extern int __nonull(1, 2) __nothrow __warn_result ${deprecated}
+extern int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 {
@@ -86,16 +86,16 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 	${type} value;
 	const char * str;
 
+	if (!json_object_is_type(object, json_type_string))
+		return -EINVAL;
+
 	ret = ${init}(&value);
 	if (ret)
 		return ret;
 
-	errno = 0;
-	str = json_object_get_${jsonc}(object);
-	if (errno) {
-		ret = -errno;
-		goto error;
-	}
+	str = json_object_get_string(object);
+	${assert_fn}(str);
+
 	ret = stroll_lvstr_lend(&value, str);
 	if (ret)
 		goto error;

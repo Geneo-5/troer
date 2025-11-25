@@ -21,7 +21,7 @@ ${pid}_to_str(${type} value)
 	return NULL;
 }
 
-static int __nonull(1, 2)
+static int __${pre}nonull(1, 2)
 ${pid}_bisect_cmp(const void * __restrict key,
 		  const void * __restrict entry,
 		  void *                  data __unused)
@@ -34,7 +34,7 @@ ${pid}_bisect_cmp(const void * __restrict key,
 	return strcmp(k, e);
 }
 
-extern int __nonull(1, 2) __warn_result ${deprecated}
+extern int __${pre}nonull(1, 2) __warn_result ${deprecated}
 ${pid}_from_str(const char *str, ${type} *value)
 {
 	${assert_fn}(str);
@@ -55,7 +55,7 @@ ${pid}_from_str(const char *str, ${type} *value)
 	return 0;
 }
 
-extern int __nonull(1) ${deprecated}
+extern int __${pre}nonull(1) ${deprecated}
 ${pid}_dump_str(const char ** buf, size_t nr)
 {
 	${assert_fn}(buf);
@@ -70,7 +70,7 @@ ${pid}_dump_str(const char ** buf, size_t nr)
 }
 #if $json
 
-extern struct json_object * __nonull(1) __nothrow __warn_result ${deprecated}
+extern struct json_object * __${pre}nonull(1) __nothrow __warn_result ${deprecated}
 ${decode}_to_json(struct dpack_decoder * decoder)
 {
 	${assert_fn}(decoder);
@@ -93,7 +93,7 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 	return json_object_new_string(str);
 };
 
-extern int __nonull(1, 2) __nothrow __warn_result ${deprecated}
+extern int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 {

@@ -107,7 +107,7 @@ class Elem(Doc):
         self.lib       = lib
         self.assert_fn = lib.assert_fn
         self.id        = self.yaml['name'].replace("-", "_")
-        self.pre       = self.lib.prefix
+        self.pre       = self.lib.pre
         self.pid       = self.pre + self.id
         self.json      = lib.json
         self.vref      = ''
@@ -253,7 +253,6 @@ class StrElem(Elem):
         self.tmpl  = 'lvstr'
         self.dpack = 'lvstr'
         self.type  = 'struct stroll_lvstr'
-        self.jsonc = 'string'
         self.vref  = '&'
         self.init  = f"{self.pre}init_{self.id}"
         self.fini  = f"{self.pre}fini_{self.id}"
@@ -341,15 +340,16 @@ class DefrefElem(Elem):
         lib.header.add(yaml.get("header"))
 
 class Lib(Doc):
-    def __init__(self, yaml, json=False):
+    def __init__(self, yaml, args):
         super().__init__(yaml)
-        self.json      = json
+        self.args      = args
+        self.json      = args.json
         self.schema    = self.yaml["schema"]
         self.name      = self.yaml['name']
         self.id        = self.name.replace("-", "_")
-        self.prefix    = self.yaml.get('prefix', self.id + "_")
+        self.pre       = self.yaml.get('prefix', self.id + "_")
         self.version   = Version(self.yaml['version'])
-        self.assert_fn = f"{self.prefix}assert"
+        self.assert_fn = f"{self.pre}assert"
         self.subClass  = "Elem"
         self.header    = set()
         self.elems     = OrderedDict()
@@ -359,7 +359,7 @@ class Lib(Doc):
         self.header.add("<errno.h>")
         self.header.add("<dpack/codec.h>")
         self.header.add("<stroll/cdefs.h>")
-        if json:
+        if self.json:
             self.header.add("<json-c/json_object.h>")
 
         for h in self.yaml.get('headers', []):
@@ -411,9 +411,13 @@ class Lib(Doc):
 
     def rendering(self, outputDir, indent=None):
         if self.kconfig:
+            print(f"  GEN {outputDir}/include/{self.name}/lib.h")
             self._rendering(outputDir, indent, 'lib.h', f'include/{self.name}/lib.h')
         else:
-            self._rendering(outputDir, indent, 'lib.h', f'{self.name}.h')
+            out = self.args.include_dir if self.args.include_dir else outputDir
+            print(f"  GEN {out}/{self.name}.h")
+            self._rendering(out, indent, 'lib.h', f'{self.name}.h')
+        print(f"  GEN {outputDir}/{self.name}.c")
         self._rendering(outputDir, indent, 'lib.c', f'{self.name}.c')
 
 def newElem(type, * args):

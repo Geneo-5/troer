@@ -30,11 +30,23 @@
  * @see CONFIG_${id.upper()}_ASSERT
  */
 \#if defined(CONFIG_${id.upper()}_ASSERT)
-\#include <stroll/assert.h>
-\#define ${assert_fn}(_cond) \
-         stroll_assert("${name}", _cond)
+\# include <stroll/assert.h>
+\# ifndef ${assert_fn}
+\#  define ${assert_fn}(_cond) \
+           stroll_assert("${name}", _cond)
+\# endif
+\# ifndef __${pre}nonull
+\#  define __${pre}nonull(_arg_index, ...)
+\# endif
 \#else
-\#define ${assert_fn}(_cond)
+\# include <stroll/cdefs.h>
+\# ifndef ${assert_fn}
+\#  define ${assert_fn}(_cond)
+\# endif
+\# ifndef __${pre}nonull
+\#  define __${pre}nonull(_arg_index, ...) \
+           __nonull(_arg_index, ## __VA_ARGS__)
+\# endif
 \#endif
 
 #for $e in $elems:

@@ -20,7 +20,7 @@ multilineCommentEndToken = *@@
 @@if @builtin
 builtins             = builtin.a
 builtin.a-cflags     = $(EXTRA_CFLAGS)
-builtin.a-obj        = @{lib.name}.o
+builtin.a-objs       = @{lib.name}.o
 @@else
 
 config-in   := Config.in
