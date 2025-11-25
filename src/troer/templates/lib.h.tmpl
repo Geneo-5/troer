@@ -45,7 +45,7 @@
 \# endif
 \# ifndef __${pre}nonull
 \#  define __${pre}nonull(_arg_index, ...) \
-           __nonull(_arg_index, ## __VA_ARGS__)
+           __nonull(_arg_index, \#\# __VA_ARGS__)
 \# endif
 \#endif
 
