@@ -389,19 +389,23 @@ class Lib(Doc):
             return self.elems[name]
         return self.libs[name]
 
-    def resolveLibs(self, includeDir):
+    def resolveLibs(self, includeDir, args):
         for f in self.yaml.get('includes', []):
-            lastE = FileNotFoundError(f"{f}.yaml")
+            lastE = FileNotFoundError(f"{f['file']}.yml")
             versionSpec = SpecifierSet(f.get('version', ">=0"))
             for i in includeDir:
                 try:
-                    with open(f"{i}/{f['file']}.yaml", "r") as y:
+                    with open(f"{i}/{f['file']}.yml", "r") as y:
                         spec = safe_load(y)
                 except:
-                    continue
+                    try:
+                        with open(f"{i}/{f['file']}.yaml", "r") as y:
+                            spec = safe_load(y)
+                    except:
+                        continue
                 try:
                     validate(spec)
-                    lib = Lib(spec)
+                    lib = Lib(spec, args)
                     if lib.version not in versionSpec:
                         raise Exception( \
                 f"{f} find with version {lib.version} but want {versionSpec}")
@@ -432,11 +436,11 @@ def newElem(type, * args):
         return RefElem(* args)
     return globals()[f"{type.title()}Elem"](* args)
 
-def loadTroer(path, includeDir, json=False):
+def loadTroer(path, includeDir, args):
     with open(path, 'r') as f:
         yaml = safe_load(f)
     validate(yaml)
-    troer = globals()[yaml["schema"].title()](yaml, json)
-    troer.resolveLibs(includeDir)
+    troer = globals()[yaml["schema"].title()](yaml, args)
+    troer.resolveLibs(includeDir, args)
     return troer
 
