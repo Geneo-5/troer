@@ -364,6 +364,8 @@ class Lib(Doc):
         self.elems     = OrderedDict()
         self.libs      = {}
         self.kconfig   = False
+    
+        self.resolveLibs(args.includeDir, args)
 
         self.header.add("<errno.h>")
         self.header.add("<dpack/codec.h>")
@@ -436,11 +438,10 @@ def newElem(type, * args):
         return RefElem(* args)
     return globals()[f"{type.title()}Elem"](* args)
 
-def loadTroer(path, includeDir, args):
+def loadTroer(path, args):
     with open(path, 'r') as f:
         yaml = safe_load(f)
     validate(yaml)
     troer = globals()[yaml["schema"].title()](yaml, args)
-    troer.resolveLibs(includeDir, args)
     return troer
 

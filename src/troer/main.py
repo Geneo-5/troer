@@ -45,7 +45,7 @@ def cli():
             default=None, help='Path to directory to write include file')
     args = parser.parse_args()
     try:
-        troer = loadTroer(args.spec, args.includeDir, args)
+        troer = loadTroer(args.spec, args)
         if args.makefile != 'no':
             makefile = Makefile(troer, args.makefile)
             makefile.rendering(args.outputDir)
