@@ -14,6 +14,9 @@ $defs:
   version:
     type: string
     pattern: ^[0-9]+\.[0-9]+\.[0-9]+$
+  header:
+    type: string
+    pattern: "^((<.+>)|([^<].+[^>]))$"
   types:
     if:
       properties:
@@ -56,7 +59,7 @@ $defs:
         - if:
             properties:
               type:
-                const: enum
+                enum: [ enum, flags ]
           then:
             required: [ entries ]
             properties:
@@ -105,8 +108,7 @@ properties:
     minItems: 1
     uniqueItems: true
     items:
-      type: string
-      pattern: "^((<.+>)|([^<].+[^>]))$"
+      $ref: '#/$defs/header'
 
   includes:
     description: List of include troer files
@@ -122,94 +124,13 @@ properties:
           type: string
         header:
           description: Set include header file
-          type: string
-          pattern: "^((<.+>)|([^<].+[^>]))$"
+          $ref: '#/$defs/header'
         version:
           description: Version checker
           type: string
           pattern: ^[<>]?(=)?[0-9]+(\.[0-9]+(\.[0-9]+)?)?$
 
-  definitions:
-    description: |
-      List of type and constant definitions (enums, flags, const and extern ref).
-    type: array
-    minItems: 1
-    items:
-      type: object
-      required: [ name, type ]
-      unevaluatedProperties: false
-      properties:
-        name:
-          $ref: '#/$defs/name'
-        type:
-          enum: [ const, enum, flags, ref ]
-        doc:
-          type: string
-      allOf:
-        -
-          if:
-            properties:
-              type:
-                const: const
-          then:
-            properties:
-              value:
-                type: [ string, number ]
-            required: [ value ]
-        -
-          if:
-            properties:
-              type:
-                enum: [ enum, flags ]
-          then:
-            required: [ entries ]
-            properties:
-              entries:
-                type: array
-                items:
-                  oneOf:
-                    - $ref: '#/$defs/name'
-                    - type: object
-                      required: [ name ]
-                      additionalProperties: False
-                      properties:
-                        name:
-                          $ref: '#/$defs/name'
-                        value:
-                          type: [ string, number ]
-                        doc:
-                          type: string
-        -
-          if:
-            properties:
-              type:
-                const: ref
-          then:
-            required: [ header, struct, encode, decode, min, max, check ]
-            properties:
-              header:
-                description: header which already defines this value.
-                type: string
-                pattern: "^((<.+>)|([^<].+[^>]))$"
-              struct:
-                type: string
-                pattern: "^(struct ).*"
-              min:
-                type: string
-              max:
-                type: string
-              encode:
-                type: string
-              decode:
-                type: string
-              init:
-                type: string
-              fini:
-                type: string
-              check:
-                type: string
-
-  structures:
+  declarations:
     description: |
       List of type
     type: array
@@ -225,12 +146,40 @@ properties:
           type: string
         deprecated:
           type: boolean
+        check:
+          type: string
       allOf:
         - $ref: '#/$defs/types'
+        -
+          if:
+            properties:
+              type:
+                const: custom
+          then:
+            required: [ struct, encode, decode, min, max, check ]
+            properties:
+              header:
+                description: header which already defines this value.
+                $ref: '#/$defs/header'
+              struct:
+                type: string
+                pattern: "^(struct ).*"
+              min:
+                type: string
+              max:
+                type: string
+              encode:
+                type: string
+              decode:
+                type: string
+              init:
+                type: string
+              fini:
+                type: string
         - if:
             properties:
               type:
-                const: struct
+                enum: [ struct, union ]
           then:
             required: [ entries ]
             properties:
@@ -257,10 +206,10 @@ properties:
                     - if:
                         properties:
                           type:
-                            const: ref
+                            type: string
                       then:
-                        required: [ ref ]
                         properties:
-                          ref:
-                            $ref: '#/$defs/name'
+                          type:
+                            type: string
+                            pattern: ^\$(.*/)?[a-zA-Z]([a-zA-Z0-9_-]*[a-zA-Z0-9]+)?$
 

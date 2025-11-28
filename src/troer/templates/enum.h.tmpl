@@ -79,6 +79,21 @@ ${pid}_from_str(const char *str, ${type} *value)
 extern int
 ${pid}_dump_str(const char ** buf, size_t nr)
  __${pre}nonull(1) ${deprecated};
+#if $app_check
+
+/**
+ * Applicative check if input is valid ${type}
+ *
+ * @param[in] value The value to test
+ *
+ * @return an errno like error code
+ * @retval 0       Success
+ * @retval -EINVAL Invalid value
+ */
+extern int
+${app_check}(${type} value)
+__${pre}nonull(1) __warn_result;
+#end if
 
 /**
  * Check if input is valid enum ${pid}
@@ -92,7 +107,14 @@ ${pid}_dump_str(const char ** buf, size_t nr)
 static inline int __warn_result ${deprecated}
 ${check}(${type} value)
 {
-	return ${pid}_to_str(value) != NULL ? 0 : -EINVAL;
+	if (${pid}_to_str(value) == NULL)
+		return -EINVAL;
+
+#if $app_check
+	return ${app_check}(value);
+#else
+	return 0;
+#end if
 };
 
 /**

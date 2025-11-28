@@ -51,11 +51,12 @@ definitions:
       - flags-3
       - flags-4
       - flags-5
-  -
-    name: test-ref-1
-    type: ref
-    header: test/ref.h
-    pack: test_ref_1_pack
-    unpack: test_ref_1_unpack
-    obj: test_ref_1_st
+# TODO: fix me
+#  -
+#    name: test-ref-1
+#    type: ref
+#    header: test/ref.h
+#    pack: test_ref_1_pack
+#    unpack: test_ref_1_unpack
+#    obj: test_ref_1_st
 

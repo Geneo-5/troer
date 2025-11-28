@@ -1,24 +1,25 @@
 extern int __${pre}nonull(1) __warn_result ${deprecated}
-${check}(${type} * value)
+${check}(const ${type} * value)
 {
 	${assert_fn}(value);
 
 #for $e in $entries
 #if 'repeated' in $e
-	if (value->${e.id}_nb > ${e.repeated})
-		return 1;
-
 	for (unsigned int i = 0; i < ${e.repeated}; i++) {
-		if (${e.check}(${e.vref}value->${e.id}[i]))
+		if (${e.check}(${e.ampersand}value->${e.id}[i]))
 			return 1;
 	}
 #else
-	if (${e.check}(${e.vref}value->${e.id}))
+	if (${e.check}(${e.ampersand}value->${e.id}))
 		return 1;
 #end if
 
 #end for
+#if $app_check
+	return ${app_check}(value);
+#else
 	return 0;
+#end if
 }
 
 #for $e in $entries
@@ -34,7 +35,6 @@ ${decode}_array_${e.id}(struct dpack_decoder * decoder,
 
 	${type} *value = ctx;
 
-	value->${e.id}_nb = id;
 	return ${e.decode}(decoder, &value->${e.id}[id]);
 }
 
@@ -51,10 +51,9 @@ ${decode}(struct dpack_decoder * decoder,
 
 #for $e in $entries
 #if 'repeated' in $e
-	${assert_fn}(value->${e.id}_nb == 0);
 	${assert_fn}(value->${e.id});
 
-	ret = dpack_array_decode_max(decoder, ${e.repeated},
+	ret = dpack_array_decode_equ(decoder, ${e.repeated},
 				     ${decode}_array_${e.id},
 				     value);
 	if (ret)
@@ -71,7 +70,7 @@ ${decode}(struct dpack_decoder * decoder,
 
 extern int __${pre}nonull(1) __nothrow __warn_result ${deprecated}
 ${encode}(struct dpack_encoder * encoder,
-	  ${type} * value)
+	  const ${type} * value)
 {
 	${assert_fn}(encoder);
 	${assert_fn}(${check}(value) == 0);
@@ -82,21 +81,19 @@ ${encode}(struct dpack_encoder * encoder,
 #if 'repeated' in $e
 	${assert_fn}(value->${e.id});
 
-	if (value->${e.id}_nb) {
-		ret = dpack_array_begin_encode(encoder, value->${e.id}_nb);
+	ret = dpack_array_begin_encode(encoder, ${e.repeated});
+	if (ret)
+		return ret;
+
+	for (unsigned int i = 0; i < ${e.repeated}; i++) {
+		ret = ${e.encode}(encoder, ${e.ampersand}value->${e.id}[i]);
 		if (ret)
 			return ret;
-
-		for (unsigned int i = 0; i < value->${e.id}_nb; i++) {
-			ret = ${e.encode}(encoder, ${e.vref}value->${e.id}[i]);
-			if (ret)
-				return ret;
-		}
-
-		dpack_array_end_encode(encoder);
 	}
+
+	dpack_array_end_encode(encoder);
 #else
-	ret = ${e.encode}(encoder, ${e.vref}value->${e.id});
+	ret = ${e.encode}(encoder, ${e.ampersand}value->${e.id});
 	if (ret)
 		return ret;
 #end if
@@ -151,7 +148,7 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 	if (!obj)
 		goto error;
 
-	ret = dpack_array_decode_max(decoder, ${e.repeated},
+	ret = dpack_array_decode_equ(decoder, ${e.repeated},
 				     ${decode}_array_${e.id}_to_json,
 				     obj);
 	if (ret)
@@ -182,7 +179,6 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 
 	int ret;
 	struct json_object *obj;
-	unsigned int nb __unused;
 
 #for $e in $entries
 	obj = json_object_object_get(object, "${e.id}");
@@ -193,29 +189,26 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 	if (!json_object_is_type(obj, json_type_array))
 		return -EINVAL;
 
-	nb = (unsigned int)json_object_array_length(obj);
-	if (nb > ${e.repeated})
+	if (${e.repeated} != (unsigned int)json_object_array_length(obj))
 		return -EINVAL;
 	
-	if (nb) {
-		ret = dpack_array_begin_encode(encoder, nb);
+	ret = dpack_array_begin_encode(encoder, ${e.repeated});
+	if (ret)
+		return ret;
+
+	for (unsigned int i = 0; i < ${e.repeated}; i++) {
+		struct json_object *tmp;
+
+		tmp = json_object_array_get_idx(obj, i);
+		if (!tmp)
+			return -EINVAL;
+
+		ret = ${e.encode}_from_json(encoder, tmp);
 		if (ret)
 			return ret;
-
-		for (unsigned int i = 0; i < nb; i++) {
-			struct json_object *tmp;
-
-			tmp = json_object_array_get_idx(obj, i);
-			if (!tmp)
-				return -EINVAL;
-
-			ret = ${e.encode}_from_json(encoder, tmp);
-			if (ret)
-				return ret;
-		}
-
-		dpack_array_end_encode(encoder);
 	}
+
+	dpack_array_end_encode(encoder);
 #else
 	ret = ${e.encode}_from_json(encoder, obj);
 	if (ret)
@@ -236,11 +229,6 @@ ${init}(${type} * value __unused)
 
 #for $e in $entries
 #if 'repeated' in $e
-	value->${e.id}_nb = 0;
-	value->${e.id} = malloc(sizeof(*value->${e.id}) * ${e.repeated});
-	if (!value->${e.id})
-		return -ENOMEM;
-
 #if $e.init
 	for (unsigned int i = 0; i < ${e.repeated}; i++) {
 		ret = ${e.init}(&value->${e.id}[i]);
@@ -272,9 +260,6 @@ ${fini}(${type} * value __unused)
 	for (unsigned int i = 0; i < ${e.repeated}; i++)
 		${e.fini}(&value->${e.id}[i]);
 #end if
-	free(value->${e.id});
-	value->${e.id} = NULL;
-	value->${e.id}_nb = 0;
 #else
 #if $e.fini
 	${e.fini}(&value->${e.id});

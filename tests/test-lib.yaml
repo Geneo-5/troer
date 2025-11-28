@@ -9,7 +9,7 @@ prefix: lib_
 #     file: include-lib
 #     version: '<=1'
 
-structures:
+declarations:
   -
     name: on-off
     type: enum
@@ -86,10 +86,8 @@ structures:
         pattern: "[a-z][a-zA-Z0-9_]*"
       -
         name: ref
-        type: ref
-        ref: subst
+        type: $subst
       -
         name: enumumerate
-        type: ref
-        ref: on-off
+        type: $on-off
 

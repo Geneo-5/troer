@@ -9,6 +9,21 @@
  * the @rstsubst{MessagePack int format}.
  */
 \#define ${pid.upper()}_PACKED_SIZE_MAX DPACK_LVSTR_CONST_SIZE(${size})
+#if $app_check
+
+/**
+ * Applicative check if input is valid ${type}
+ *
+ * @param[in] value The value to test
+ *
+ * @return an errno like error code
+ * @retval 0       Success
+ * @retval -EINVAL Invalid value
+ */
+extern int
+${app_check}(const ${type} * value)
+__${pre}nonull(1) __warn_result;
+#end if
 
 /**
  * Check if input is valid ${type}
@@ -21,14 +36,18 @@
  */
 #if not $pattern
 static inline int __${pre}nonull(1) __warn_result ${deprecated}
-${check}(${type} * value)
+${check}(const ${type} * value)
 {
 	${assert_fn}(value);
 
 	if ($size < stroll_lvstr_len(value))
 		return -EINVAL;
 
+#if $app_check
+	return ${app_check}(value);
+#else
 	return 0;
+#end if
 };
 #else
 extern int
@@ -99,9 +118,9 @@ ${decode}(struct dpack_decoder * decoder,
  * - dpack_encode_${dpack}()
  * - dpack_encoder_init_buffer()
  */
-static inline int __${pre}nonull(1) __nothrow __warn_result ${deprecated}
+static inline int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${encode}(struct dpack_encoder * encoder,
-	  ${type} * value)
+	  const ${type} * value)
 {
 	${assert_fn}(encoder);
 	${assert_fn}(${check}(value) == 0);

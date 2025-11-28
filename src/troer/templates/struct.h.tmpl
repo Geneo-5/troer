@@ -13,13 +13,27 @@
 ${type} {
 #for $e in $entries
 #if 'repeated' in $e
-	unsigned int ${e.id}_nb;
-	${e.type} *${e.id};
+	${e.type} ${e.id}[${e.repeated}];
 #else
 	${e.type} ${e.id};
 #end if
 #end for
 };
+#if $app_check
+
+/**
+ * Applicative check if input is valid ${type}
+ *
+ * @param[in] value The value to test
+ *
+ * @return an errno like error code
+ * @retval 0       Success
+ * @retval -EINVAL Invalid value
+ */
+extern int
+${app_check}(const ${type} * value)
+__${pre}nonull(1) __warn_result;
+#end if
 
 /**
  * Check if input is valid ${type}
@@ -31,7 +45,7 @@ ${type} {
  * @retval -EINVAL Invalid value
  */
 extern int
-${check}(${type} * value)
+${check}(const ${type} * value)
 __${pre}nonull(1) __warn_result ${deprecated};
 
 /**
@@ -94,8 +108,8 @@ __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated};
  */
 extern int
 ${encode}(struct dpack_encoder * encoder,
-	  ${type} * value)
-__${pre}nonull(1) __nothrow __warn_result ${deprecated};
+	  const ${type} * value)
+__${pre}nonull(1, 2) __nothrow __warn_result ${deprecated};
 
 #if $json
 /**
@@ -170,7 +184,75 @@ ${init}(${type} * value)
  * Finalize an empty ${type}_.
  * @param[inout] value Length-Value String
  */
-extern void ${fini}(${type} * value)
+extern void
+${fini}(${type} * value)
  __${pre}nonull(1) ${deprecated};
+#for $e in $entries
+#set $c='const ' if e.asterisk else ''
+#if 'repeated' in $e
+
+static inline ${c}${e.type}${e.asterisk} __${pre}nonull(1) ${deprecated}
+${pre}const_${id}_get_${e.id}(const ${type} * value, unsigned int idx)
+{
+	${assert_fn}(value);
+	${assert_fn}(${check}(value) == 0);
+	${assert_fn}(idx < ${e.repeated});
+
+	return ${e.ampersand}value->${e.id}[idx];
+}
+
+static inline ${e.type}${e.asterisk} __${pre}nonull(1) ${deprecated}
+${pid}_get_${e.id}(${type} * value, unsigned int idx)
+{
+	${assert_fn}(value);
+	${assert_fn}(${check}(value) == 0);
+	${assert_fn}(idx < ${e.repeated});
+
+	return ${e.ampersand}value->${e.id}[idx];
+}
+#if not e.asterisk
+
+static inline void __${pre}nonull(1) ${deprecated}
+${pid}_set_${e.id}(${type} * data, unsigned int idx, ${e.type} value)
+{
+	${assert_fn}(data);
+	${assert_fn}(${e.check}(value) == 0);
+	${assert_fn}(idx < ${e.repeated});
+
+	data->${e.id}[idx] = value;
+}
+#end if
+#else
+
+static inline ${e.type}${e.asterisk} __${pre}nonull(1) ${deprecated}
+${pid}_get_${e.id}(${type} * value)
+{
+	${assert_fn}(value);
+	${assert_fn}(${check}(value) == 0);
+
+	return ${e.ampersand}value->${e.id};
+}
+
+static inline ${c}${e.type}${e.asterisk} __${pre}nonull(1) ${deprecated}
+${pre}const_${id}_get_${e.id}(const ${type} * value)
+{
+	${assert_fn}(value);
+	${assert_fn}(${check}(value) == 0);
+
+	return ${e.ampersand}value->${e.id};
+}
+#if not e.asterisk
+
+static inline void __${pre}nonull(1) ${deprecated}
+${pid}_set_${e.id}(${type} * data, ${e.type} value)
+{
+	${assert_fn}(data);
+	${assert_fn}(${e.check}(value) == 0);
+
+	data->${e.id} = value;
+}
+#end if
+#end if
+#end for
 
 ## ex: filetype=c

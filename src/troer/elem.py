@@ -110,7 +110,8 @@ class Elem(Doc):
         self.pre       = self.lib.pre
         self.pid       = self.pre + self.id
         self.json      = lib.json
-        self.vref      = ''
+        self.ampersand = ''
+        self.asterisk  = ''
 
         self.packed_size = f"{self.pid.upper()}_PACKED_SIZE"
         self.decode      = f"{self.pre}decode_{self.id}"
@@ -118,6 +119,7 @@ class Elem(Doc):
         self.check       = f"{self.pre}check_{self.id}"
         self.init        = None
         self.fini        = None
+        self.app_check   = self.yaml.get('check', None)
 
         self.deprecated = ""
         if self.yaml.get('deprecated', False):
@@ -253,7 +255,8 @@ class StrElem(Elem):
         self.tmpl  = 'lvstr'
         self.dpack = 'lvstr'
         self.type  = 'struct stroll_lvstr'
-        self.vref  = '&'
+        self.ampersand = '&'
+        self.asterisk  = '*'
         self.init  = f"{self.pre}init_{self.id}"
         self.fini  = f"{self.pre}fini_{self.id}"
         lib.header.add("<dpack/lvstr.h>")
@@ -283,7 +286,8 @@ class EnumElem(Elem):
 class RefElem(Elem):
     def __init__(self, lib, yaml):
         super().__init__(lib, yaml)
-        self.elem        = lib.getElem(self.yaml['ref'])
+        #self.elem        = lib.getElem(self.yaml['ref'])
+        self.elem        = lib.getElem(self.yaml['type'][1:])
         self.type        = self.elem.type
         self.decode      = self.elem.decode
         self.encode      = self.elem.encode
@@ -291,7 +295,8 @@ class RefElem(Elem):
         self.init        = self.elem.init
         self.fini        = self.elem.fini
         self.packed_size = self.elem.packed_size
-        self.vref        = self.elem.vref
+        self.ampersand   = self.elem.ampersand
+        self.asterisk    = self.elem.asterisk
 
 class StructElem(Elem):
     def __init__(self, lib, yaml):
@@ -299,13 +304,14 @@ class StructElem(Elem):
         self.tmpl    = "struct"
         self.type    = f"struct {self.pid}"
         self.entries = []
-        self.vref    = '&'
+        self.ampersand = '&'
+        self.asterisk  = '*'
         self.init    = f"{self.pre}init_{self.id}"
         self.fini    = f"{self.pre}fini_{self.id}"
 
         for i in self.yaml['entries']:
-            lib.addElem(i['type'], i)
-            self.entries.append(lib.getElem(i['name']))
+            lib.addElem(i['type'], f"{self.name}_", i)
+            self.entries.append(lib.getElem(f"{self.name}_{i['name']}"))
             if 'repeated' in i:
                 lib.header.add("<dpack/array.h>")
 
@@ -324,20 +330,23 @@ class StructElem(Elem):
     def defineMAX(self):
         return self.defineMinMax("MAX")
 
-class DefrefElem(Elem):
+class CustomElem(Elem):
     def __init__(self, lib, yaml):
         super().__init__(lib, yaml)
-        self.tmpl        = 'defRef'
+        self.tmpl        = 'defCustom'
         self.type        = yaml.get("struct")
         self.decode      = yaml.get("decode")
         self.encode      = yaml.get("encode")
-        self.check       = yaml.get("check", None)
+        self.check       = yaml.get("check")
         self.init        = yaml.get("init", None)
         self.fini        = yaml.get("fini", None)
         self.min_size    = yaml.get("min")
         self.max_size    = yaml.get("max")
-        self.vref        = "&"
-        lib.header.add(yaml.get("header"))
+        self.ampersand   = '&'
+        self.asterisk    = '*'
+        if "header" in yaml:
+            lib.header.add(yaml.get("header"))
+        self.app_check   = None
 
 class Lib(Doc):
     def __init__(self, yaml, args):
@@ -365,17 +374,15 @@ class Lib(Doc):
         for h in self.yaml.get('headers', []):
             self.header.add(h)
 
-        for d in  self.yaml.get('definitions', []):
-            self.addElem(f"def{d['type']}", d)
+        for d in  self.yaml.get('declarations', []):
+            self.addElem(d['type'], "", d)
 
-        for i in self.yaml.get('structures', []):
-            self.addElem(i['type'], i)
-
-    def addElem(self, type, *args):
+    def addElem(self, type, p, *args):
         elem = newElem(type, self, *args)
-        if elem.name in self.elems:
+        name = f"{p}{elem.name}"
+        if name in self.elems:
             raise Exception(f"{elem.name} early exist")
-        self.elems[elem.name] = elem
+        self.elems[name] = elem
 
     def getElem(self, name):
         if name in self.elems:
@@ -421,6 +428,8 @@ class Lib(Doc):
         self._rendering(outputDir, indent, 'lib.c', f'{self.name}.c')
 
 def newElem(type, * args):
+    if type[0] == '$':
+        return RefElem(* args)
     return globals()[f"{type.title()}Elem"](* args)
 
 def loadTroer(path, includeDir, json=False):

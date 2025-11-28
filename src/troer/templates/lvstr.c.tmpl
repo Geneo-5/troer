@@ -36,7 +36,11 @@ ${check}(${type} * value)
 	if (err < 0)
 		return -EINVAL;
 
+#if $app_check
+	return ${app_check}(value);
+#else
 	return 0;
+#end if
 }
 
 #end if
