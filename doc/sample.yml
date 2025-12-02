@@ -1,0 +1,87 @@
+schema: lib
+name: sample-lib
+version: 1.0.0
+doc: Sample lib format
+#prefix: sample_
+
+# optional
+headers:
+  - test.h
+  - <linux/test.h>
+
+# optional
+includes:
+  - file: path to include file
+#   version: '<=1'
+
+declarations:
+# enum object
+  -
+    name: enum
+#   doc: enum doc
+    type: enum
+    entries:
+      - 'on'
+      - 'off'
+#     -
+#       name: OK
+#       doc: like on
+#       value: 0
+#     -
+#       name: KO
+#       doc: like off
+#       value: LIB_OFF
+
+# scalar object
+  -
+    name: name of bool
+#   doc: bool doc
+    type: bool
+  -
+    name: name of scalar
+#   doc: scalar doc
+    type: can be: u8 u16 u32 u64 s8 s16 s32 s64 f32 f64
+#   min: 0
+#   max: 10
+
+# str object
+  -
+    name: name of string
+#   doc: string doc
+    type: str
+    size: string size
+#   pattern: regex
+
+# struct or union object
+  -
+    name: name of struct
+#   doc: struct doc
+    type: struct # union
+    entries:
+      - 
+        # list of sacalar, enum or str
+      -
+        name: ref defined type
+        type: $enum #can be prefixed by include path file $hed/inet/in_addr
+
+      -
+        name: repeated elem
+        type: ...
+        repeated: 5
+      # repeated:
+      #   min: 0
+      #   max: 1024
+
+# custom object
+  -
+    name: name of custom object
+    type: custom
+    struct: struct eth_addr
+#   header: <>
+    min: dpack min size
+    max: dpack max size
+    encode: encode func to dpack (for json use same name with ..._from_json)
+    decode: decode func from dpack (for json use same name with ..._to_json)
+#   init: init func
+#   fini: fini func
+
