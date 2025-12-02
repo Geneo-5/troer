@@ -150,8 +150,7 @@ properties:
           type: string
       allOf:
         - $ref: '#/$defs/types'
-        -
-          if:
+        - if:
             properties:
               type:
                 const: custom
@@ -198,18 +197,36 @@ properties:
                     deprecated:
                       type: boolean
                     repeated:
-                      type: integer
-                      minimum: 2
-                        #maximum: 1024
+                      allof:
+                        - if:
+                            type: integer
+                          then:
+                            type: integer
+                            minimum: 2
+                        - if:
+                            type: object
+                          then:
+                            type: object
+                            required: [ min, max ]
+                            unevaluatedProperties: false
+                            properties:
+                              min:
+                                type: integer
+                                minimum: 0
+                              max:
+                                type: integer
+                                minimum: 2
                   allOf:
                     - $ref: '#/$defs/types'
                     - if:
                         properties:
                           type:
                             type: string
+                            pattern: ^\$
                       then:
                         properties:
                           type:
                             type: string
-                              #pattern: ^\$(.*\/)?[a-zA-Z]([a-zA-Z0-9_-]*[a-zA-Z0-9]+)?$
+                            pattern: ^\$(.*\/)?[a-zA-Z]([a-zA-Z0-9_-]*[a-zA-Z0-9]+)?$
+
 

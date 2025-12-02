@@ -284,10 +284,9 @@ class EnumElem(Elem):
             self.entries.append(e)
 
 class RefElem(Elem):
-    def __init__(self, lib, yaml):
+    def __init__(self, elem, lib, yaml):
         super().__init__(lib, yaml)
-        #self.elem        = lib.getElem(self.yaml['ref'])
-        self.elem        = lib.getElem(self.yaml['type'][1:])
+        self.elem        = lib.getElem(elem)
         self.type        = self.elem.type
         self.decode      = self.elem.decode
         self.encode      = self.elem.encode
@@ -311,15 +310,27 @@ class StructElem(Elem):
 
         for i in self.yaml['entries']:
             lib.addElem(i['type'], f"{self.name}_", i)
-            self.entries.append(lib.getElem(f"{self.name}_{i['name']}"))
+            e = lib.getElem(f"{self.name}_{i['name']}")
+            self.entries.append(e)
             if 'repeated' in i:
                 lib.header.add("<dpack/array.h>")
+                if isinstance(i['repeated'], int):
+                    e.repeated_min = i['repeated']
+                    e.repeated_max = i['repeated']
+                else:
+                    e.repeated_min = i['repeated']['min']
+                    e.repeated_max = i['repeated']['max']
+                    if e.repeated_min >= e.repeated_max:
+                        raise Exception("min value >= max value")
 
     def defineMinMax(self, t):
         r = []
         for e in self.entries:
             if 'repeated' in e:
-                r.append(f"DPACK_ARRAY_FIXED_SIZE({e.repeated},{e.packed_size}_{t})")
+                if t == "MIN":
+                    r.append(f"DPACK_ARRAY_FIXED_SIZE({e.repeated_min},{e.packed_size}_{t})")
+                else:
+                    r.append(f"DPACK_ARRAY_FIXED_SIZE({e.repeated_max},{e.packed_size}_{t})")
             else:
                 r.append(f"{e.packed_size}_{t}")
         return "\\\n\t" + " + \\\n\t".join(r)
@@ -413,7 +424,7 @@ class Lib(Doc):
                 f"{f} find with version {lib.version} but want {versionSpec}")
                     for l in lib.elems:
                         self.libs[f"{f['file']}/{l}"] = lib.elems[l]
-                    self.header.add(f.get('header', f"<{lib.id}.h>"))
+                    self.header.add(f.get('header', f"<{f['file']}.h>"))
                     lastE = None
                     break
                 except Exception as e:
@@ -435,7 +446,7 @@ class Lib(Doc):
 
 def newElem(type, * args):
     if type[0] == '$':
-        return RefElem(* args)
+        return RefElem(type[1:], * args)
     return globals()[f"{type.title()}Elem"](* args)
 
 def loadTroer(path, args):

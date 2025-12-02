@@ -13,7 +13,12 @@
 ${type} {
 #for $e in $entries
 #if 'repeated' in $e
+#if isinstance(e.repeated, int)
 	${e.type} ${e.id}[${e.repeated}];
+#else
+	size_t     ${e.id}_nb;
+	${e.type} *${e.id};
+#end if
 #else
 	${e.type} ${e.id};
 #end if
@@ -188,35 +193,41 @@ extern void
 ${fini}(${type} * value)
  __${pre}nonull(1) ${deprecated};
 #for $e in $entries
-#set $c='const ' if e.asterisk else ''
 #if 'repeated' in $e
 
-static inline ${c}${e.type}${e.asterisk} __${pre}nonull(1) ${deprecated}
-${pre}const_${id}_get_${e.id}(const ${type} * value, unsigned int idx)
+static inline size_t  __${pre}nonull(1) ${deprecated}
+${pid}_get_${e.id}_nb(const ${type} * value)
 {
 	${assert_fn}(value);
-	${assert_fn}(${check}(value) == 0);
-	${assert_fn}(idx < ${e.repeated});
 
-	return ${e.ampersand}value->${e.id}[idx];
+#if isinstance(e.repeated, int)
+	return ${e.repeated};
+#else
+	return value->${e.id}_nb;
+#end if
 }
 
 static inline ${e.type}${e.asterisk} __${pre}nonull(1) ${deprecated}
-${pid}_get_${e.id}(${type} * value, unsigned int idx)
+${pid}_get_${e.id}(const ${type} * value, unsigned int idx)
 {
 	${assert_fn}(value);
-	${assert_fn}(${check}(value) == 0);
+#if isinstance(e.repeated, int)
 	${assert_fn}(idx < ${e.repeated});
+#else
+	${assert_fn}(idx < value->${e.id}_nb);
+#end if
 
-	return ${e.ampersand}value->${e.id}[idx];
+STROLL_IGNORE_WARN("-Wcast-qual")
+	return (${e.type}${e.asterisk})${e.ampersand}value->${e.id}[idx];
+STROLL_RESTORE_WARN
 }
+#if isinstance(e.repeated, int)
 #if not e.asterisk
 
 static inline void __${pre}nonull(1) ${deprecated}
 ${pid}_set_${e.id}(${type} * data, unsigned int idx, ${e.type} value)
 {
 	${assert_fn}(data);
-	${assert_fn}(${e.check}(value) == 0);
 	${assert_fn}(idx < ${e.repeated});
 
 	data->${e.id}[idx] = value;
@@ -224,22 +235,20 @@ ${pid}_set_${e.id}(${type} * data, unsigned int idx, ${e.type} value)
 #end if
 #else
 
+extern  ${e.type} *
+${pid}_append_${e.id}(${type} * data)
+	__${pre}nonull(1) ${deprecated};
+#end if
+#else
+
 static inline ${e.type}${e.asterisk} __${pre}nonull(1) ${deprecated}
-${pid}_get_${e.id}(${type} * value)
+${pid}_get_${e.id}(const ${type} * value)
 {
 	${assert_fn}(value);
-	${assert_fn}(${check}(value) == 0);
 
-	return ${e.ampersand}value->${e.id};
-}
-
-static inline ${c}${e.type}${e.asterisk} __${pre}nonull(1) ${deprecated}
-${pre}const_${id}_get_${e.id}(const ${type} * value)
-{
-	${assert_fn}(value);
-	${assert_fn}(${check}(value) == 0);
-
-	return ${e.ampersand}value->${e.id};
+STROLL_IGNORE_WARN("-Wcast-qual")
+	return (${e.type}${e.asterisk})${e.ampersand}value->${e.id};
+STROLL_RESTORE_WARN
 }
 #if not e.asterisk
 
@@ -247,7 +256,6 @@ static inline void __${pre}nonull(1) ${deprecated}
 ${pid}_set_${e.id}(${type} * data, ${e.type} value)
 {
 	${assert_fn}(data);
-	${assert_fn}(${e.check}(value) == 0);
 
 	data->${e.id} = value;
 }

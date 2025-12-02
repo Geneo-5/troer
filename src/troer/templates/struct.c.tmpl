@@ -5,7 +5,11 @@ ${check}(const ${type} * value)
 
 #for $e in $entries
 #if 'repeated' in $e
+#if isinstance(e.repeated, int)
 	for (unsigned int i = 0; i < ${e.repeated}; i++) {
+#else
+	for (unsigned int i = 0; i < value->${e.id}_nb; i++) {
+#end if
 		if (${e.check}(${e.ampersand}value->${e.id}[i]))
 			return 1;
 	}
@@ -33,9 +37,20 @@ ${decode}_array_${e.id}(struct dpack_decoder * decoder,
 	${assert_fn}(ctx);
 	${assert_fn}(id < ${e.repeated});
 
+	int      ret;
 	${type} *value = ctx;
+#if isinstance(e.repeated, int)
 
 	return ${e.decode}(decoder, &value->${e.id}[id]);
+#else
+	${e.type} *tmp;
+
+	tmp = ${pid}_append_${e.id}(value);
+	if (!tmp)
+		return -ENOMEM;
+
+	return ${e.decode}(decoder, tmp);
+#end if
 }
 
 #end if
@@ -51,11 +66,15 @@ ${decode}(struct dpack_decoder * decoder,
 
 #for $e in $entries
 #if 'repeated' in $e
-	${assert_fn}(value->${e.id});
-
+#if isinstance(e.repeated, int)
 	ret = dpack_array_decode_equ(decoder, ${e.repeated},
 				     ${decode}_array_${e.id},
 				     value);
+#else
+	ret = dpack_array_decode_range(decoder, ${e.repeated.min}, ${e.repeated.max},
+				       ${decode}_array_${e.id},
+				       value);
+#end if
 	if (ret)
 		return ret;
 #else
@@ -65,7 +84,7 @@ ${decode}(struct dpack_decoder * decoder,
 #end if
 
 #end for
-	return 0;
+	return ${check}(value);
 }
 
 extern int __${pre}nonull(1) __nothrow __warn_result ${deprecated}
@@ -79,13 +98,19 @@ ${encode}(struct dpack_encoder * encoder,
 
 #for $e in $entries
 #if 'repeated' in $e
-	${assert_fn}(value->${e.id});
-
+#if isinstance(e.repeated, int)
 	ret = dpack_array_begin_encode(encoder, ${e.repeated});
+#else
+	ret = dpack_array_begin_encode(encoder, value->${e.id}_nb);
+#end if
 	if (ret)
 		return ret;
 
+#if isinstance(e.repeated, int)
 	for (unsigned int i = 0; i < ${e.repeated}; i++) {
+#else
+	for (unsigned int i = 0; i < value->${e.id}_nb; i++) {
+#end if
 		ret = ${e.encode}(encoder, ${e.ampersand}value->${e.id}[i]);
 		if (ret)
 			return ret;
@@ -148,9 +173,15 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 	if (!obj)
 		goto error;
 
+#if isinstance(e.repeated, int)
 	ret = dpack_array_decode_equ(decoder, ${e.repeated},
 				     ${decode}_array_${e.id}_to_json,
 				     obj);
+#else
+	ret = dpack_array_decode_range(decoder, ${e.repeated.min}, ${e.repeated.max},
+				     ${decode}_array_${e.id}_to_json,
+				     obj);
+#end if
 	if (ret)
 		goto error;
 #else
@@ -179,6 +210,7 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 
 	int ret;
 	struct json_object *obj;
+	size_t nb __unused;
 
 #for $e in $entries
 	obj = json_object_object_get(object, "${e.id}");
@@ -189,14 +221,20 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 	if (!json_object_is_type(obj, json_type_array))
 		return -EINVAL;
 
-	if (${e.repeated} != (unsigned int)json_object_array_length(obj))
+	nb = (size_t)json_object_array_length(obj);
+#if isinstance(e.repeated, int)
+	if (${e.repeated} != nb)
 		return -EINVAL;
+#else
+	if ((nb < ${e.repeated.min}) || (nb > ${e.repeated.max}))
+		return -EINVAL;
+#end if
 	
-	ret = dpack_array_begin_encode(encoder, ${e.repeated});
+	ret = dpack_array_begin_encode(encoder, nb);
 	if (ret)
 		return ret;
 
-	for (unsigned int i = 0; i < ${e.repeated}; i++) {
+	for (size_t i = 0; i < nb; i++) {
 		struct json_object *tmp;
 
 		tmp = json_object_array_get_idx(obj, i);
@@ -229,6 +267,7 @@ ${init}(${type} * value __unused)
 
 #for $e in $entries
 #if 'repeated' in $e
+#if isinstance(e.repeated, int)
 #if $e.init
 	for (unsigned int i = 0; i < ${e.repeated}; i++) {
 		ret = ${e.init}(&value->${e.id}[i]);
@@ -236,6 +275,10 @@ ${init}(${type} * value __unused)
 			return ret;
 	}
 
+#end if
+#else
+	value->${e.id}_nb = 0;
+	value->${e.id} = NULL;
 #end if
 #else
 #if $e.init
@@ -256,9 +299,13 @@ ${fini}(${type} * value __unused)
 
 #for $e in $entries
 #if 'repeated' in $e
+#set $r = e.repeated if isinstance(e.repeated, int) else f"&value->{e.id}_nb"
 #if $e.fini
-	for (unsigned int i = 0; i < ${e.repeated}; i++)
+	for (unsigned int i = 0; i < ${r}; i++)
 		${e.fini}(&value->${e.id}[i]);
+#end if
+#if not isinstance(e.repeated, int)
+	free(value->${e.id});
 #end if
 #else
 #if $e.fini
@@ -267,5 +314,39 @@ ${fini}(${type} * value __unused)
 #end if
 #end for
 }
+#for $e in $entries
+#if 'repeated' in $e and not isinstance(e.repeated, int)
+
+${e.type} *__${pre}nonull(1) ${deprecated}
+${pid}_append_${e.id}(${type} * data)
+{
+	${assert_fn}(data);
+
+	void *ptr;
+#if $e.init
+	int   ret;
+#end if
+
+	if (data->${e.id}_nb >= (${e.repeated.max} - 1))
+		return NULL;
+	
+	ptr = reallocarray(data->${e.id}, data->${e.id}_nb + 1, sizeof(${e.type}));
+	if (!ptr)
+		return NULL;
+
+	data->${e.id} = ptr;
+#if $e.init
+	ret = ${e.init}(&value->${e.id}[data->${e.id}_nb])
+	if (ret) {
+		errno = -ret;
+		return NULL;
+	}
+
+#end if
+	data->${e.id}_nb++;
+	return &data->${e.id}[data->${e.id}_nb - 1];
+}
+#end if
+#end for
 
 ## ex: filetype=c

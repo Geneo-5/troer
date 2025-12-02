@@ -147,7 +147,13 @@ static inline int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
 {
-	return dpack_decode_int(decoder, (int *)value);
+	int ret;
+
+	ret = dpack_decode_int(decoder, (int *)value);
+	if (ret)
+		return ret;
+
+	return ${check}(*value);
 };
 
 /**
