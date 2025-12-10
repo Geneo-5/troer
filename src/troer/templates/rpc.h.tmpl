@@ -1,0 +1,135 @@
+#for $e in $req
+
+extern int
+${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
+
+extern int
+${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
+
+#if 'request' in $e
+#set $nl = '1, 3' if $e.request.asterisk else 1
+
+extern int
+${e.pre}srv_${e.id}(struct hed_rpc_msg *msg
+                    ${e.request.type} ${e.request.asterisk}req)
+	__${pre}nonull(${nl}) __nothrow __warn_result;
+
+extern int
+${e.pre}req_${e.id}(struct hed_rpc_conn *conn,
+                        ${e.request.type} ${e.request.asterisk}req)
+	__${pre}nonull(${nl}) __nothrow __warn_result;
+#else
+
+extern int
+${e.pre}srv_${e.id}(struct hed_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
+
+extern int
+${e.pre}req_${e.id}(struct hed_rpc_conn *conn)
+	__${pre}nonull(1) __nothrow __warn_result;
+#end if
+#if 'response' in $e
+
+extern int
+${e.pre}clt_${e.id}(struct hed_rpc_msg *msg,
+                    uint32_t status,
+                    ${e.response.type} ${e.response.asterisk}req)
+	__${pre}nonull(1) __nothrow __warn_result;
+
+extern int
+${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
+                    uint32_t status,
+                    ${e.response.type} ${e.response.asterisk}req)
+	__${pre}nonull(1) __nothrow __warn_result;
+#else
+
+extern int
+${e.pre}clt_${e.id}(struct hed_rpc_msg *msg,
+                    uint32_t status)
+	__${pre}nonull(1) __nothrow __warn_result;
+
+extern int
+${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
+                    uint32_t status)
+	__${pre}nonull(1) __nothrow __warn_result;
+#end if
+#end for
+#for $e in $ntfy
+
+extern int
+${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
+#if 'request' in $e
+#set $nl = '1, 2' if $e.request.asterisk else 1
+
+extern int
+${e.pre}srv_${e.id}(struct hed_rpc_msg *msg,
+                    ${e.request.type} ${e.request.asterisk}req)
+	__${pre}nonull(${nl}) __nothrow __warn_result;
+
+extern int
+${e.pre}ntf_${e.id}(struct hed_rpc_conn *conn,
+                        ${e.request.type} ${e.request.asterisk}req)
+	__${pre}nonull(${nl}) __nothrow __warn_result;
+#else
+
+extern int
+${e.pre}srv_${e.id}(struct hed_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
+
+extern int
+${e.pre}ntf_${e.id}(struct hed_rpc_conn *conn)
+	__${pre}nonull(1) __nothrow __warn_result;
+#end if
+#end for
+#for $e in $evnt
+
+extern int
+${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
+#if 'request' in $e
+#set $nl = '1, 2' if $e.request.asterisk else 1
+
+extern int
+${e.pre}clt_${e.id}(struct hed_rpc_msg *msg,
+                    ${e.request.type} ${e.request.asterisk}req)
+	__${pre}nonull(${nl}) __nothrow __warn_result;
+
+extern int
+${e.pre}ntf_${e.id}(struct hed_rpc_conn *conn,
+                    ${e.request.type} ${e.request.asterisk}req)
+	__${pre}nonull(${nl}) __nothrow __warn_result;
+#else
+
+extern int
+${e.pre}clt_${e.id}(struct hed_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
+
+extern int
+${e.pre}ntf_${e.id}(struct hed_rpc_conn *conn)
+	__${pre}nonull(1) __nothrow __warn_result;
+#end if
+#end for
+
+#define ${pre.upper()}SRV_MAX_PAYLOAD $getSrvMaxSize()
+
+#define ${pre.upper()}CLT_MAX_PAYLOAD $getCltMaxSize()
+
+extern const struct hed_rpc_accept_conf ${pre}srv_conf;
+
+extern const struct hed_rpc_accept_conf ${pre}clt_conf;
+
+#if $json
+
+extern struct json_object *
+${pre}clt_msg_to_json(struct hed_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
+
+extern int
+${pre}srv_msg_from_json(struct hed_rpc_msg *msg,
+			struct json_object    *object)
+	__${pre}nonull(1, 2) __nothrow __warn_result;
+#end if
+## ex: filetype=c

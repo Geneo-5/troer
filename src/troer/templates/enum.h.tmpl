@@ -147,6 +147,9 @@ static inline int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
 {
+	${assert_fn}(decoder);
+	${assert_fn}(value);
+
 	int ret;
 
 	ret = dpack_decode_int(decoder, (int *)value);
@@ -181,6 +184,8 @@ static inline int __${pre}nonull(1) __nothrow __warn_result ${deprecated}
 ${encode}(struct dpack_encoder * encoder,
 	  ${type} value)
 {
+	${assert_fn}(encoder);
+
 	return dpack_encode_int(encoder, (int)value);
 };
 

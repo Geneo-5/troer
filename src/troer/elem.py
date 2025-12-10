@@ -282,6 +282,96 @@ class EnumElem(Elem):
             else:
                 e = EnumEntry(self.lib, {'name':i})
             self.entries.append(e)
+            name = f"{self.name}_{e.name}"
+            if name in self.lib.elems:
+                raise Exception(f"{name} early exist")
+            self.lib.elems[name] = e
+
+class RpcEntry(Elem):
+    def __init__(self, lib, yaml):
+        super().__init__(lib, yaml)
+
+        self.roles = []
+        for r in yaml['roles']:
+            self.roles.append(RefElem(r[1:], lib, yaml))
+
+        if 'request' in yaml:
+            self.request = RefElem(yaml['request'][1:], lib, yaml)
+        if 'response' in yaml:
+            self.response = RefElem(yaml['response'][1:], lib, yaml)
+
+class RpcElem(EnumElem):
+    def __init__(self, lib, yaml):
+        super().__init__(lib, yaml)
+
+        self.req  = []
+        self.evnt = []
+        self.ntfy = []
+        values = {}
+        self.maxid = 0
+        for i in self.yaml['entries']:
+            v = i['value']
+            self.maxid = max(self.maxid, v)
+            if v in values:
+                raise Exception(f"RPC {i['name']} id value ({v}) conflict with {values[v]}")
+            values[v] = i['name']
+
+            e = RpcEntry(self.lib, i)
+            if i['type'] == 'request':
+                self.req.append(e)
+            elif i['type'] == 'event':
+                self.evnt.append(e)
+            elif i['type'] == 'notify':
+                self.ntfy.append(e)
+
+    def _formatMaxSize(self, r, s):
+        while len(r) > 1:
+            R = set()
+            while len(r) > 1:
+                r1 = r.pop()
+                r2 = r.pop()
+                R.add(f'STROLL_CONST_MAX( {r1}, {r2})')
+            if r:
+                R.add(r.pop())
+            r = R
+        c = len(s);
+        for e in r.pop().split(' '):
+            if c + len(e) + 1 < (80 - 9):
+                s += e + ' '
+            else:
+                s += '\\\n\t ' + e + ' '
+                c = 0
+            c += len(e) + 1
+        s = s[:-1] + ')'
+        return s
+
+    def getSrvMaxSize(self):
+        r = set()
+        for e in self.req + self.ntfy:
+            if e.request:
+                r.add(f"{e.request.elem.pid.upper()}_PACKED_SIZE_MAX")
+        if not r:
+            return '(DPACK_UINT32_SIZE_MAX)'
+        s = '\\\n\t(DPACK_UINT32_SIZE_MAX + '
+        return self._formatMaxSize(r, s)
+    
+    def getCltMaxSize(self):
+        r = set()
+        for e in self.req:
+            if e.response:
+                r.add(f"{e.response.elem.pid.upper()}_PACKED_SIZE_MAX")
+        for e in self.evnt:
+            if e.request:
+                r.add(f"{e.request.elem.pid.upper()}_PACKED_SIZE_MAX")
+        if not r:
+            return '(DPACK_UINT32_SIZE_MAX + DPACK_UINT32_SIZE_MAX)'
+        s = '\\\n\t(DPACK_UINT32_SIZE_MAX + DPACK_UINT32_SIZE_MAX + '
+        return self._formatMaxSize(r, s)
+
+    def getDeclaration(self):
+        hdr = super().getDeclaration()
+        tmpl = read_text(templates, f"rpc.h.tmpl")
+        return str(hdr) + '\n'  + str(Template(tmpl, self))
 
 class RefElem(Elem):
     def __init__(self, elem, lib, yaml):
@@ -333,7 +423,7 @@ class StructElem(Elem):
                     r.append(f"DPACK_ARRAY_FIXED_SIZE({e.repeated_max},{e.packed_size}_{t})")
             else:
                 r.append(f"{e.packed_size}_{t}")
-        return "\\\n\t" + " + \\\n\t".join(r)
+        return "\\\n\t(" + " + \\\n\t ".join(r) + ")"
 
     def defineMIN(self):
         return self.defineMinMax("MIN")
@@ -394,7 +484,7 @@ class Lib(Doc):
         elem = newElem(type, self, *args)
         name = f"{p}{elem.name}"
         if name in self.elems:
-            raise Exception(f"{elem.name} early exist")
+            raise Exception(f"{name} early exist")
         self.elems[name] = elem
 
     def getElem(self, name):
@@ -443,6 +533,23 @@ class Lib(Doc):
             self._rendering(out, indent, 'lib.h', f'{self.name}.h')
         print(f"  GEN {outputDir}/{self.name}.c")
         self._rendering(outputDir, indent, 'lib.c', f'{self.name}.c')
+
+class Exchange(Lib):
+    def __init__(self, yaml, args):
+        super().__init__(yaml, args)
+        self.header.add("<galv/session.h>")
+        self.rpc = {
+                'name': 'rpc-enum',
+                'entries': yaml['rpc']
+        }
+        self.addElem('rpc', "", self.rpc)
+
+    def rendering(self, outputDir, indent=None):
+        super().rendering(outputDir, indent)
+        print(f"  GEN {outputDir}/{self.name}-srv.c")
+        self._rendering(outputDir, indent, 'rpc-srv.c', f'{self.name}-srv.c')
+        print(f"  GEN {outputDir}/{self.name}-clt.c")
+        self._rendering(outputDir, indent, 'rpc-clt.c', f'{self.name}-clt.c')
 
 def newElem(type, * args):
     if type[0] == '$':
