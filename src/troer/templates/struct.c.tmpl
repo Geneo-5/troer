@@ -35,7 +35,12 @@ ${decode}_array_${e.id}(struct dpack_decoder * decoder,
 {
 	${assert_fn}(decoder);
 	${assert_fn}(ctx);
+#if isinstance(e.repeated, (int, str))
 	${assert_fn}(id < ${e.repeated});
+#else
+	${assert_fn}(id >= ${e.repeated.min});
+	${assert_fn}(id < ${e.repeated.max});
+#end if
 
 	int      ret;
 	${type} *value = ctx;
@@ -138,7 +143,12 @@ ${decode}_array_${e.id}_to_json(struct dpack_decoder * decoder,
 {
 	${assert_fn}(decoder);
 	${assert_fn}(ctx);
+#if isinstance(e.repeated, (int, str))
 	${assert_fn}(id < ${e.repeated});
+#else
+	${assert_fn}(id >= ${e.repeated.min});
+	${assert_fn}(id < ${e.repeated.max});
+#end if
 
 	struct json_object *obj;
 	struct json_object *object = ctx;
@@ -299,7 +309,7 @@ ${fini}(${type} * value __unused)
 
 #for $e in $entries
 #if 'repeated' in $e
-#set $r = e.repeated if isinstance(e.repeated, int) else f"&value->{e.id}_nb"
+#set $r = e.repeated if isinstance(e.repeated, (int, str)) else f"&value->{e.id}_nb"
 #if $e.fini
 	for (unsigned int i = 0; i < ${r}; i++)
 		${e.fini}(&value->${e.id}[i]);
