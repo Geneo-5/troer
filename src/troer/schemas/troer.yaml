@@ -200,12 +200,16 @@ properties:
                     deprecated:
                       type: boolean
                     repeated:
-                      allof:
+                      allOf:
                         - if:
                             type: integer
                           then:
                             type: integer
                             minimum: 2
+                        - if:
+                            type: string
+                          then:
+                            type: string
                         - if:
                             type: object
                           then:
@@ -214,11 +218,27 @@ properties:
                             unevaluatedProperties: false
                             properties:
                               min:
-                                type: integer
-                                minimum: 0
+                                allOf:
+                                  - if:
+                                      type: integer
+                                    then:
+                                      type: integer
+                                      minimum: 0
+                                  - if:
+                                      type: string
+                                    then:
+                                      type: string
                               max:
-                                type: integer
-                                minimum: 2
+                                allOf:
+                                  - if:
+                                      type: integer
+                                    then:
+                                      type: integer
+                                      minimum: 2
+                                  - if:
+                                      type: string
+                                    then:
+                                      type: string
                   allOf:
                     - $ref: '#/$defs/types'
                     - if:

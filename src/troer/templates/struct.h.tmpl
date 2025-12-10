@@ -13,7 +13,7 @@
 ${type} {
 #for $e in $entries
 #if 'repeated' in $e
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 	${e.type} ${e.id}[${e.repeated}];
 #else
 	size_t     ${e.id}_nb;
@@ -200,7 +200,7 @@ ${pid}_get_${e.id}_nb(const ${type} * value)
 {
 	${assert_fn}(value);
 
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 	return ${e.repeated};
 #else
 	return value->${e.id}_nb;
@@ -211,7 +211,7 @@ static inline ${e.type}${e.asterisk} __${pre}nonull(1) ${deprecated}
 ${pid}_get_${e.id}(const ${type} * value, unsigned int idx)
 {
 	${assert_fn}(value);
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 	${assert_fn}(idx < ${e.repeated});
 #else
 	${assert_fn}(idx < value->${e.id}_nb);
@@ -221,7 +221,7 @@ STROLL_IGNORE_WARN("-Wcast-qual")
 	return (${e.type}${e.asterisk})${e.ampersand}value->${e.id}[idx];
 STROLL_RESTORE_WARN
 }
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 #if not e.asterisk
 
 static inline void __${pre}nonull(1) ${deprecated}

@@ -5,7 +5,7 @@ ${check}(const ${type} * value)
 
 #for $e in $entries
 #if 'repeated' in $e
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 	for (unsigned int i = 0; i < ${e.repeated}; i++) {
 #else
 	for (unsigned int i = 0; i < value->${e.id}_nb; i++) {
@@ -39,7 +39,7 @@ ${decode}_array_${e.id}(struct dpack_decoder * decoder,
 
 	int      ret;
 	${type} *value = ctx;
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 
 	return ${e.decode}(decoder, &value->${e.id}[id]);
 #else
@@ -66,7 +66,7 @@ ${decode}(struct dpack_decoder * decoder,
 
 #for $e in $entries
 #if 'repeated' in $e
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 	ret = dpack_array_decode_equ(decoder, ${e.repeated},
 				     ${decode}_array_${e.id},
 				     value);
@@ -98,7 +98,7 @@ ${encode}(struct dpack_encoder * encoder,
 
 #for $e in $entries
 #if 'repeated' in $e
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 	ret = dpack_array_begin_encode(encoder, ${e.repeated});
 #else
 	ret = dpack_array_begin_encode(encoder, value->${e.id}_nb);
@@ -106,7 +106,7 @@ ${encode}(struct dpack_encoder * encoder,
 	if (ret)
 		return ret;
 
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 	for (unsigned int i = 0; i < ${e.repeated}; i++) {
 #else
 	for (unsigned int i = 0; i < value->${e.id}_nb; i++) {
@@ -173,7 +173,7 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 	if (!obj)
 		goto error;
 
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 	ret = dpack_array_decode_equ(decoder, ${e.repeated},
 				     ${decode}_array_${e.id}_to_json,
 				     obj);
@@ -222,7 +222,7 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 		return -EINVAL;
 
 	nb = (size_t)json_object_array_length(obj);
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 	if (${e.repeated} != nb)
 		return -EINVAL;
 #else
@@ -267,7 +267,7 @@ ${init}(${type} * value __unused)
 
 #for $e in $entries
 #if 'repeated' in $e
-#if isinstance(e.repeated, int)
+#if isinstance(e.repeated, (int, str))
 #if $e.init
 	for (unsigned int i = 0; i < ${e.repeated}; i++) {
 		ret = ${e.init}(&value->${e.id}[i]);
@@ -304,7 +304,7 @@ ${fini}(${type} * value __unused)
 	for (unsigned int i = 0; i < ${r}; i++)
 		${e.fini}(&value->${e.id}[i]);
 #end if
-#if not isinstance(e.repeated, int)
+#if not isinstance(e.repeated, (int, str))
 	free(value->${e.id});
 #end if
 #else
@@ -315,7 +315,7 @@ ${fini}(${type} * value __unused)
 #end for
 }
 #for $e in $entries
-#if 'repeated' in $e and not isinstance(e.repeated, int)
+#if 'repeated' in $e and not isinstance(e.repeated, (int, str))
 
 ${e.type} *__${pre}nonull(1) ${deprecated}
 ${pid}_append_${e.id}(${type} * data)

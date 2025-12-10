@@ -404,14 +404,20 @@ class StructElem(Elem):
             self.entries.append(e)
             if 'repeated' in i:
                 lib.header.add("<dpack/array.h>")
-                if isinstance(i['repeated'], int):
+                if isinstance(i['repeated'], (int, str)):
+                    if isinstance(i['repeated'], str):
+                        print(f"WARNING: cannot check {e.repeated} value")
                     e.repeated_min = i['repeated']
                     e.repeated_max = i['repeated']
                 else:
                     e.repeated_min = i['repeated']['min']
                     e.repeated_max = i['repeated']['max']
-                    if e.repeated_min >= e.repeated_max:
-                        raise Exception("min value >= max value")
+                    if isinstance(e.repeated_min, int) and \
+                       isinstance(e.repeated_max, int):
+                        if e.repeated_min >= e.repeated_max:
+                            raise Exception("min value >= max value")
+                    else:
+                        print(f"WARNING: cannot check {e.repeated_min} and {e.repeated_max} values")
 
     def defineMinMax(self, t):
         r = []
