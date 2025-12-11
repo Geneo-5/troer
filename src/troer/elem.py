@@ -114,9 +114,9 @@ class Elem(Doc):
         self.asterisk  = ''
 
         self.packed_size = f"{self.pid.upper()}_PACKED_SIZE"
-        self.decode      = f"{self.pre}decode_{self.id}"
-        self.encode      = f"{self.pre}encode_{self.id}"
-        self.check       = f"{self.pre}check_{self.id}"
+        self.decode      = f"{self.pre}dec_{self.id}"
+        self.encode      = f"{self.pre}enc_{self.id}"
+        self.check       = f"{self.pre}chk_{self.id}"
         self.init        = None
         self.fini        = None
         self.app_check   = self.yaml.get('check', None)

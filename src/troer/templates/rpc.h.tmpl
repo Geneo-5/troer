@@ -18,7 +18,8 @@ ${e.pre}srv_${e.id}(struct hed_rpc_msg *msg
 
 extern int
 ${e.pre}req_${e.id}(struct hed_rpc_conn *conn,
-                        ${e.request.type} ${e.request.asterisk}req)
+                    ${e.request.type} ${e.request.asterisk}req,
+                    void * ctx)
 	__${pre}nonull(${nl}) __nothrow __warn_result;
 #else
 
@@ -27,14 +28,13 @@ ${e.pre}srv_${e.id}(struct hed_rpc_msg *msg)
 	__${pre}nonull(1) __nothrow __warn_result;
 
 extern int
-${e.pre}req_${e.id}(struct hed_rpc_conn *conn)
+${e.pre}req_${e.id}(struct hed_rpc_conn *conn, void * ctx)
 	__${pre}nonull(1) __nothrow __warn_result;
 #end if
 #if 'response' in $e
 
 extern int
-${e.pre}clt_${e.id}(struct hed_rpc_msg *msg,
-                    uint32_t status,
+${e.pre}clt_${e.id}(void * ctx, uint32_t status,
                     ${e.response.type} ${e.response.asterisk}req)
 	__${pre}nonull(1) __nothrow __warn_result;
 
@@ -46,9 +46,8 @@ ${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
 #else
 
 extern int
-${e.pre}clt_${e.id}(struct hed_rpc_msg *msg,
-                    uint32_t status)
-	__${pre}nonull(1) __nothrow __warn_result;
+${e.pre}clt_${e.id}(void *ctx, uint32_t status)
+	__nothrow __warn_result;
 
 extern int
 ${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
@@ -93,7 +92,7 @@ ${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg)
 #set $nl = '1, 2' if $e.request.asterisk else 1
 
 extern int
-${e.pre}clt_${e.id}(struct hed_rpc_msg *msg,
+${e.pre}clt_${e.id}(struct hed_rpc_conn *conn,
                     ${e.request.type} ${e.request.asterisk}req)
 	__${pre}nonull(${nl}) __nothrow __warn_result;
 
@@ -104,7 +103,7 @@ ${e.pre}ntf_${e.id}(struct hed_rpc_conn *conn,
 #else
 
 extern int
-${e.pre}clt_${e.id}(struct hed_rpc_msg *msg)
+${e.pre}clt_${e.id}(struct hed_rpc_conn *conn)
 	__${pre}nonull(1) __nothrow __warn_result;
 
 extern int

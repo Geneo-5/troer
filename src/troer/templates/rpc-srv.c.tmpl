@@ -12,26 +12,19 @@
 #else
 \#include "${name}.h"
 #end if
-
 #set $rpc = $elems['rpc-enum']
 #for $e in $rpc.req
 
+int __${pre}nonull(1) __nothrow __warn_result
 #if 'response' in $e
-#set $nl = '1, 2' if $e.response.asterisk else 1
-int __${pre}nonull($nl) __nothrow __warn_result
 ${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
                     uint32_t status,
-                    ${e.response.type} ${e.response.asterisk}req)
-{
-#if $e.response.asterisk
-	${assert_fn}(req);
-#end if
+                    ${e.response.type} ${e.response.asterisk}ans)
 #else
-int __${pre}nonull(1) __nothrow __warn_result
 ${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
                     uint32_t status)
-{
 #end if
+{
 	${assert_fn}(msg);
 	${assert_fn}(msg->id == ${e.pid.upper()});
 
@@ -40,7 +33,7 @@ ${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
 
 	hed_encoder_init(&encoder, msg);
 
-	ret = ${rpc.encode}(&encoder, ${e.pid.upper()});
+	ret = dpack_encode_uint32(&encoder, ${e.pid.upper()});
 	if (ret)
 		goto error;
 
@@ -50,7 +43,8 @@ ${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
 #if 'response' in $e
 
 	if (!status) {
-		ret = ${e.response.encode}(&encoder, req);
+		${assert_fn}(ans);
+		ret = ${e.response.encode}(&encoder, ans);
 		if (ret)
 			goto error;
 
@@ -94,12 +88,12 @@ ${e.pre}ntf_${e.id}(struct hed_rpc_msg *conn)
 
 	hed_encoder_init(&encoder, msg);
 
-	ret = ${rpc.encode}(&encoder, ${e.pid.upper()});
+	ret = dpack_encode_uint32(&encoder, ${e.pid.upper()});
 	if (ret)
 		goto error;
 #if 'request' in $e
 
-	ret = ${e.response.encode}(&encoder, req);
+	ret = ${e.request.encode}(&encoder, req);
 	if (ret)
 		goto error;
 #end if
@@ -111,11 +105,11 @@ error:
 	hed_encoder_fini(&encoder, DPACK_ABORT);
 	hed_rpc_drop_msg(msg);
 	return ret;
-	return 0;
 }
 #end for
 
 #for $e in $rpc.req + $rpc.ntfy
+#set $goto = 'fini' if 'request' in e and 'fini' in $e.request else 'error'
 
 int __${pre}nonull(1) __nothrow __warn_result
 ${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
@@ -123,56 +117,56 @@ ${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
 	${assert_fn}(msg);
 	${assert_fn}(msg->id == ${e.pid.upper()});
 
-	int ret;
-#if 'request' in e
+#if 'request' in $e
 	struct dpack_decoder  decoder;
 	${e.request.type} param;
+	int ret;
 #if 'init' in $e.request
 
 	ret = ${e.request.init}(&param);
 	if (ret)
-		return ret;
+		goto error;
 #end if
 	hed_decoder_init(&decoder, msg);
 
 	ret = ${e.request.decode}(decoder, &param);
 	hed_decoder_fini(&decoder);
 	if (ret)
-#if 'fini' in $e.request
-		goto error;
-#else
-		return ret;
-#end if
+		goto ${goto};
 
 	msg = hed_rpc_reply(msg);
-#if 'fini' in $e.request
 	if (!msg) {
 		ret = -ENOMEM;
-		goto error;
+		goto ${goto};
 	}
-#else
-	if (!msg)
-		return -ENOMEM;
-#end if
 
+#if 'fini' in $e.request
 	ret = ${e.pre}srv_${e.id}(msg, ${e.request.ampersand}param);
+	${e.request.fini}(&param);
+	return ret;
+#else
+	return ${e.pre}srv_${e.id}(msg, ${e.request.ampersand}param);
+#end if
 #if 'fini' in $e.request
 
-error:
+fini:
 	${e.request.fini}(&param);
 #end if
+error:
+	hed_rpc_drop_msg(msg);
+	return ret;
 #else
 
 	msg = hed_rpc_reply(msg);
-	if (!msg)
+	if (!msg) {
+		hed_rpc_drop_msg(msg);
 		return -ENOMEM;
+	}
 
-	ret = ${e.pre}srv_${e.id}(msg);
+	return ${e.pre}srv_${e.id}(msg);
 #end if
-	return ret;
 }
 #end for
-
 
 static const struct hed_rpc_auth ${pre}srv_auth[] = {
 #for $e in $rpc.req + $rpc.ntfy
