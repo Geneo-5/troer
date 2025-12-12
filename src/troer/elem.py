@@ -132,9 +132,9 @@ class Elem(Doc):
             return ""
         return Template(tmpl, self)
             
-    def getDefinition(self):
+    def getDefinition(self, sub = ''):
         try:
-            tmpl = read_text(templates, f"{self.tmpl}.c.tmpl")
+            tmpl = read_text(templates, f"{self.tmpl}{sub}.c.tmpl")
         except:
             return ""
         return Template(tmpl, self)
@@ -539,6 +539,8 @@ class Lib(Doc):
             self._rendering(out, indent, 'lib.h', f'{self.name}.h')
         print(f"  GEN {outputDir}/{self.name}.c")
         self._rendering(outputDir, indent, 'lib.c', f'{self.name}.c')
+        print(f"  GEN {outputDir}/{self.name}-json.c")
+        self._rendering(outputDir, indent, 'lib-json.c', f'{self.name}-json.c')
 
 class Exchange(Lib):
     def __init__(self, yaml, args):

@@ -184,14 +184,4 @@ ${pre}srv_conf = HED_RPC_ACCEPT_CONF(0,
                                      ${rpc.maxid},
                                      stroll_array_nr(${pre}srv_auth),
                                      &${pre}srv_auth);
-
-#if $json
-
-int __${pre}nonull(1, 2) __nothrow __warn_result
-${pre}srv_msg_from_json(struct hed_rpc_msg *conn,
-			struct json_object    *object)
-{
-	return 0;
-}
-#end if
 ## ex: filetype=c

@@ -1,0 +1,70 @@
+
+extern struct json_object * __${pre}nonull(1) __nothrow __warn_result ${deprecated}
+${decode}_to_json(struct dpack_decoder * decoder)
+{
+	${assert_fn}(decoder);
+
+	int ret = 0;
+	ssize_t len;
+	${type} value;
+	struct json_object *obj = NULL;
+
+	ret = ${init}(&value);
+	if (ret) {
+		errno = -ret;
+		return NULL;
+	}
+
+	len = dpack_decode_${dpack}(decoder, &value);
+	if (len < 0) {
+		errno = (int)-len;
+		goto error;
+	}
+
+	ret = ${check}(&value);
+	if (ret) {
+		errno = -ret;
+		goto error;
+	}
+
+	obj = json_object_new_string(stroll_lvstr_cstr(&value));
+error:
+	${fini}(&value);
+	return obj;
+};
+
+extern int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
+${encode}_from_json(struct dpack_encoder * encoder,
+		    struct json_object * object)
+{
+	${assert_fn}(encoder);
+	${assert_fn}(object);
+
+	int ret = 0;
+	${type} value;
+	const char * str;
+
+	if (!json_object_is_type(object, json_type_string))
+		return -EINVAL;
+
+	ret = ${init}(&value);
+	if (ret)
+		return ret;
+
+	str = json_object_get_string(object);
+	${assert_fn}(str);
+
+	ret = stroll_lvstr_lend(&value, str);
+	if (ret)
+		goto error;
+
+	ret = ${check}(&value);
+	if (ret)
+		goto error;
+
+	ret = dpack_encode_${dpack}(encoder, &value);
+error:
+	${fini}(&value);
+	return ret;
+};
+## ex: filetype=c

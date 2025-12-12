@@ -1,0 +1,45 @@
+extern struct json_object * __${pre}nonull(1) __nothrow __warn_result ${deprecated}
+${decode}_to_json(struct dpack_decoder * decoder)
+{
+	${assert_fn}(decoder);
+
+	int ret;
+	${type} value;
+
+	ret = dpack_decode_${dpack}(decoder, &value);
+	if (ret) {
+		errno = -ret;
+		return NULL;
+	}
+
+	ret = ${check}(value);
+	if (ret) {
+		errno = -ret;
+		return NULL;
+	}
+
+	return json_object_new_${jsonc}(value);
+};
+
+extern int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
+${encode}_from_json(struct dpack_encoder * encoder,
+		    struct json_object * object)
+{
+	${assert_fn}(encoder);
+	${assert_fn}(object);
+
+	int ret;
+	${type} value;
+
+	errno = 0;
+	value = (${type})json_object_get_${jsonc}(object);
+	if (errno)
+		return -errno;
+
+	ret = ${check}(value);
+	if (ret)
+		return ret;
+
+	return dpack_encode_${dpack}(encoder, value);
+};
+## ex: filetype=c

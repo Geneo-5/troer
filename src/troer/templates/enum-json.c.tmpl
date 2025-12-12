@@ -1,4 +1,4 @@
-#if $json
+
 extern struct json_object * __${pre}nonull(1) __nothrow __warn_result ${deprecated}
 ${decode}_to_json(struct dpack_decoder * decoder)
 {
@@ -6,20 +6,20 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 
 	int ret;
 	${type} value;
+	const char *str;
 
-	ret = dpack_decode_${dpack}(decoder, &value);
+	ret = dpack_decode_int(decoder, (int *)&value);
 	if (ret) {
 		errno = -ret;
 		return NULL;
 	}
 
-	ret = ${check}(value);
-	if (ret) {
-		errno = -ret;
+	str = ${pid}_to_str(value);
+	if (!str) {
+		errno = EINVAL;
 		return NULL;
 	}
-
-	return json_object_new_${jsonc}(value);
+	return json_object_new_string(str);
 };
 
 extern int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
@@ -30,18 +30,18 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 	${assert_fn}(object);
 
 	int ret;
+	const char * str;
 	${type} value;
 
 	errno = 0;
-	value = (${type})json_object_get_${jsonc}(object);
+	str = json_object_get_string(object);
 	if (errno)
 		return -errno;
 
-	ret = ${check}(value);
+	ret = ${pid}_from_str(str, &value);
 	if (ret)
 		return ret;
 
-	return dpack_encode_${dpack}(encoder, value);
+	return dpack_encode_int(encoder, (int)value);
 };
-#end if
 ## ex: filetype=c

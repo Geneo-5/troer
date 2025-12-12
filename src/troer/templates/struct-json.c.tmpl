@@ -1,0 +1,133 @@
+#for $e in $entries
+#if 'repeated' in $e
+static int __${pre}nonull(1, 3)
+${decode}_array_${e.id}_to_json(struct dpack_decoder * decoder,
+				unsigned int id,
+				void * __restrict ctx)
+{
+	${assert_fn}(decoder);
+	${assert_fn}(ctx);
+#if isinstance(e.repeated, (int, str))
+	${assert_fn}(id < ${e.repeated});
+#else
+	${assert_fn}(id >= ${e.repeated.min});
+	${assert_fn}(id < ${e.repeated.max});
+#end if
+
+	struct json_object *obj;
+	struct json_object *object = ctx;
+
+	${assert_fn}(json_object_is_type(object, json_type_array));
+
+	obj = ${e.decode}_to_json(decoder);
+	if (!obj)
+		return -1;
+
+	return json_object_array_put_idx(object, id, obj);
+}
+
+#end if
+#end for
+extern struct json_object * __${pre}nonull(1) __nothrow __warn_result ${deprecated}
+${decode}_to_json(struct dpack_decoder * decoder)
+{
+	${assert_fn}(decoder);
+
+	int ret;
+	struct json_object *object;
+	struct json_object *obj;
+
+	object = json_object_new_object();
+	if (!object)
+		return NULL;
+
+#for $e in $entries
+#if 'repeated' in $e
+	obj = json_object_new_array();
+	if (!obj)
+		goto error;
+
+#if isinstance(e.repeated, (int, str))
+	ret = dpack_array_decode_equ(decoder, ${e.repeated},
+				     ${decode}_array_${e.id}_to_json,
+				     obj);
+#else
+	ret = dpack_array_decode_range(decoder, ${e.repeated.min}, ${e.repeated.max},
+				     ${decode}_array_${e.id}_to_json,
+				     obj);
+#end if
+	if (ret)
+		goto error;
+#else
+	obj = ${e.decode}_to_json(decoder);
+	if (!obj)
+		goto error;
+#end if
+
+	ret = json_object_object_add(object, "${e.id}", obj);
+	if (ret)
+		goto error;
+
+#end for
+	return object;
+error:
+	json_object_put(object);
+	return NULL;
+}
+
+extern int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
+${encode}_from_json(struct dpack_encoder * encoder,
+		    struct json_object * object)
+{
+	${assert_fn}(encoder);
+	${assert_fn}(object);
+
+	int ret;
+	struct json_object *obj;
+	size_t nb __unused;
+
+#for $e in $entries
+	obj = json_object_object_get(object, "${e.id}");
+	if (!obj)
+		return -EINVAL;
+
+#if 'repeated' in $e
+	if (!json_object_is_type(obj, json_type_array))
+		return -EINVAL;
+
+	nb = (size_t)json_object_array_length(obj);
+#if isinstance(e.repeated, (int, str))
+	if (${e.repeated} != nb)
+		return -EINVAL;
+#else
+	if ((nb < ${e.repeated.min}) || (nb > ${e.repeated.max}))
+		return -EINVAL;
+#end if
+	
+	ret = dpack_array_begin_encode(encoder, nb);
+	if (ret)
+		return ret;
+
+	for (size_t i = 0; i < nb; i++) {
+		struct json_object *tmp;
+
+		tmp = json_object_array_get_idx(obj, i);
+		if (!tmp)
+			return -EINVAL;
+
+		ret = ${e.encode}_from_json(encoder, tmp);
+		if (ret)
+			return ret;
+	}
+
+	dpack_array_end_encode(encoder);
+#else
+	ret = ${e.encode}_from_json(encoder, obj);
+	if (ret)
+		return ret;
+#end if
+
+#end for
+	return 0;
+}
+## ex: filetype=c
