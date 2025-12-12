@@ -29,8 +29,8 @@
  * @retval -EINVAL Invalid value
  */
 extern int
-${app_check}(const ${type} * value)
-__${pre}nonull(1) __warn_result;
+${app_check}(const ${type} value)
+	__${pre}nonull(1) __warn_result;
 #end if
 
 /**

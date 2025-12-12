@@ -22,7 +22,7 @@
  */
 extern int
 ${app_check}(const ${type} * value)
-__${pre}nonull(1) __warn_result;
+	__${pre}nonull(1) __warn_result;
 #end if
 
 /**
@@ -51,8 +51,8 @@ ${check}(const ${type} * value)
 };
 #else
 extern int
-${check}(${type} * value)
-__${pre}nonull(1) __warn_result ${deprecated};
+${check}(const ${type} * value)
+	__${pre}nonull(1) __warn_result ${deprecated};
 #end if
 
 /**
