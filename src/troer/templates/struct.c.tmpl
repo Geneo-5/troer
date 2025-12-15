@@ -30,7 +30,11 @@ ${check}(const ${type} * value)
 #if 'repeated' in $e
 static int __${pre}nonull(1, 3)
 ${decode}_array_${e.id}(struct dpack_decoder * decoder,
+#if isinstance(e.repeated, (int, str))
 			unsigned int id,
+#else
+			unsigned int id __unused,
+#end if
 			void * __restrict ctx)
 {
 	${assert_fn}(decoder);
@@ -42,9 +46,9 @@ ${decode}_array_${e.id}(struct dpack_decoder * decoder,
 	${assert_fn}(id < ${e.repeated.max});
 #end if
 
-	int      ret;
 	${type} *value = ctx;
 #if isinstance(e.repeated, (int, str))
+	int      ret;
 
 	return ${e.decode}(decoder, &value->${e.id}[id]);
 #else
@@ -174,7 +178,7 @@ ${fini}(${type} * value __unused)
 
 #for $e in $entries
 #if 'repeated' in $e
-#set $r = e.repeated if isinstance(e.repeated, (int, str)) else f"&value->{e.id}_nb"
+#set $r = e.repeated if isinstance(e.repeated, (int, str)) else f"value->{e.id}_nb"
 #if $e.fini
 	for (unsigned int i = 0; i < ${r}; i++)
 		${e.fini}(&value->${e.id}[i]);
@@ -211,7 +215,7 @@ ${pid}_append_${e.id}(${type} * data)
 
 	data->${e.id} = ptr;
 #if $e.init
-	ret = ${e.init}(&value->${e.id}[data->${e.id}_nb])
+	ret = ${e.init}(&data->${e.id}[data->${e.id}_nb]);
 	if (ret) {
 		errno = -ret;
 		return NULL;
