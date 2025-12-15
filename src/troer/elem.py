@@ -7,8 +7,12 @@ from Cheetah.Template import Template
 from troer import templates, resources
 from troer.schemas import validate
 from textwrap import fill
-from re import sub
+from re import sub, compile
 import os
+try:
+    import pcre2
+except:
+    pass
 
 class Renderer():
     def __init__(self):
@@ -261,7 +265,12 @@ class StrElem(Elem):
         self.fini  = f"{self.pre}fini_{self.id}"
         lib.header.add("<dpack/lvstr.h>")
         if 'pattern' in self.yaml:
-            lib.header.add("<pcre2.h>")
+            if lib.args.regex == 'pcre2':
+                lib.header.add("<pcre2.h>")
+                pcre2.compile(self.yaml['pattern'])
+            else:
+                lib.header.add("<regex.h>")
+                compile(self.yaml['pattern'])
 
 class EnumEntry(Elem):
     def __init__(self, lib, yaml):
@@ -274,6 +283,7 @@ class EnumElem(Elem):
         self.type  = f'enum {self.pid}'
         self.entries = []
         lib.header.add("<string.h>")
+        lib.header.add("<dpack/scalar.h>")
         lib.header.add("<stroll/array.h>")
 
         for i in self.yaml['entries']:
@@ -303,6 +313,8 @@ class RpcEntry(Elem):
 class RpcElem(EnumElem):
     def __init__(self, lib, yaml):
         super().__init__(lib, yaml)
+        lib.header.add("<hed/rpc.h>")
+        lib.header.add("<hed/codec.h>")
 
         self.req  = []
         self.evnt = []

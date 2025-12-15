@@ -4,6 +4,7 @@ ${check}(const ${type} * value)
 {
 	${assert_fn}(value);
 
+#if $lib.args.regex == 'pcre2'
 	pcre2_code *re;
 	pcre2_match_data *match_data;
 	int err;
@@ -35,7 +36,22 @@ ${check}(const ${type} * value)
 	pcre2_match_data_free(match_data);
 	if (err < 0)
 		return -EINVAL;
+#else
+	regex_t regex;
+	int ret;
 
+	if ($size < stroll_lvstr_len(value))
+		return -EINVAL;
+
+	ret = regcomp(&regex, "${pattern}", REG_EXTENDED | REG_NOSUB);
+	if (ret)
+		return -ret;
+
+	ret = regexec(&regex, stroll_lvstr_cstr(value), 0, NULL, 0);
+	regfree(&regex);
+	if (!ret)
+		return -EINVAL;
+#end if
 #if $app_check
 	return ${app_check}(value);
 #else

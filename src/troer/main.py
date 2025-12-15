@@ -43,6 +43,9 @@ def cli():
             default=None, help='Path to directory to write include file')
     parser.add_argument('--include-dir', type=str, dest='include_dir',
             default=None, help='Path to directory to write include file')
+    parser.add_argument('--regex', default='posix',
+            choices=['posix', 'pcre2'],
+            help='Choice regex string implementation')
     args = parser.parse_args()
     try:
         troer = loadTroer(args.spec, args)

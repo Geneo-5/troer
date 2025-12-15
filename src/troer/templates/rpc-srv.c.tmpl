@@ -129,17 +129,12 @@ ${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
 #end if
 	hed_decoder_init(&decoder, msg);
 
-	ret = ${e.request.decode}(decoder, &param);
+	ret = ${e.request.decode}(&decoder, &param);
 	hed_decoder_fini(&decoder);
 	if (ret)
 		goto ${goto};
 
-	msg = hed_rpc_reply(msg);
-	if (!msg) {
-		ret = -ENOMEM;
-		goto ${goto};
-	}
-
+	hed_rpc_make_reply(msg);
 #if 'fini' in $e.request
 	ret = ${e.pre}srv_${e.id}(msg, ${e.request.ampersand}param);
 	${e.request.fini}(&param);
@@ -157,18 +152,13 @@ error:
 	return ret;
 #else
 
-	msg = hed_rpc_reply(msg);
-	if (!msg) {
-		hed_rpc_drop_msg(msg);
-		return -ENOMEM;
-	}
-
+	hed_rpc_make_reply(msg);
 	return ${e.pre}srv_${e.id}(msg);
 #end if
 }
 #end for
 
-static const struct hed_rpc_auth ${pre}srv_auth[] = {
+static struct hed_rpc_auth ${pre}srv_auth[] = {
 #for $e in $rpc.req + $rpc.ntfy
 #for $r in $e.roles
 	{${e.pid.upper()}, ${r.elem.pid.upper()}, &${e.pre}srv_dispatch_${e.id}},
@@ -180,8 +170,8 @@ const struct hed_rpc_accept_conf
 ${pre}srv_conf = HED_RPC_ACCEPT_CONF(0,
                                      SOCK_CLOEXEC,
                                      ${pre.upper()}SRV_MAX_PAYLOAD,
-                                     CONFIG_HED_BUFF_CAPA_MAX
+                                     CONFIG_HED_BUFF_CAPA_MAX,
                                      ${rpc.maxid},
                                      stroll_array_nr(${pre}srv_auth),
-                                     &${pre}srv_auth);
+                                     ${pre}srv_auth);
 ## ex: filetype=c
