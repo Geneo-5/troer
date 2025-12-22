@@ -52,11 +52,9 @@ ${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
 #end if
 
 	hed_encoder_fini(&encoder, DPACK_DONE);
-	hed_rpc_push_msg(msg);
-	return 0;
+	return hed_rpc_push_msg(msg);
 error:
 	hed_encoder_fini(&encoder, DPACK_ABORT);
-	hed_rpc_drop_msg(msg);
 	return ret;
 }
 #end for
@@ -99,8 +97,7 @@ ${e.pre}ntf_${e.id}(struct hed_rpc_msg *conn)
 #end if
 
 	hed_encoder_fini(&encoder, DPACK_DONE);
-	hed_rpc_push_msg(conn, msg);
-	return 0;
+	return hed_rpc_push_msg(conn, msg);
 error:
 	hed_encoder_fini(&encoder, DPACK_ABORT);
 	hed_rpc_drop_msg(msg);
@@ -117,10 +114,10 @@ ${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
 	${assert_fn}(msg);
 	${assert_fn}(msg->id == ${e.pid.upper()});
 
+	int ret;
 #if 'request' in $e
 	struct dpack_decoder  decoder;
 	${e.request.type} param;
-	int ret;
 #if 'init' in $e.request
 
 	ret = ${e.request.init}(&param);
@@ -134,7 +131,10 @@ ${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
 	if (ret)
 		goto ${goto};
 
-	hed_rpc_make_reply(msg);
+	ret = hed_rpc_make_reply(msg);
+	if (ret)
+		goto ${goto};
+
 #if 'fini' in $e.request
 	ret = ${e.pre}srv_${e.id}(msg, ${e.request.ampersand}param);
 	${e.request.fini}(&param);
@@ -148,11 +148,13 @@ fini:
 	${e.request.fini}(&param);
 #end if
 error:
-	hed_rpc_drop_msg(msg);
 	return ret;
 #else
 
-	hed_rpc_make_reply(msg);
+	ret = hed_rpc_make_reply(msg);
+	if (ret)
+		return ret;
+
 	return ${e.pre}srv_${e.id}(msg);
 #end if
 }

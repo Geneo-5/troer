@@ -53,10 +53,14 @@ ${e.pre}req_${e.id}(struct hed_rpc_conn *conn, void * ctx)
 #end if
 
 	hed_encoder_fini(&encoder, DPACK_DONE);
-	hed_rpc_push_msg(msg);
+	ret = hed_rpc_push_msg(msg);
+	if (ret)
+		goto drop;
+
 	return 0;
 error:
 	hed_encoder_fini(&encoder, DPACK_ABORT);
+drop:
 	hed_rpc_drop_msg(msg);
 	return ret;
 }
@@ -148,13 +152,16 @@ ${e.pre}ntf_${e.id}(struct hed_rpc_msg *conn)
 #end if
 
 	hed_encoder_fini(&encoder, DPACK_DONE);
-	hed_rpc_push_msg(conn, msg);
+	ret = hed_rpc_push_msg(msg);
+	if (ret)
+		goto drop;
+
 	return 0;
 error:
 	hed_encoder_fini(&encoder, DPACK_ABORT);
+drop:
 	hed_rpc_drop_msg(msg);
 	return ret;
-	return 0;
 }
 
 #set $goto = 'fini' if 'request' in e and 'fini' in $e.request else 'error'
