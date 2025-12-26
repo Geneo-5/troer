@@ -48,7 +48,6 @@ ${decode}_array_${e.id}(struct dpack_decoder * decoder,
 
 	${type} *value = ctx;
 #if isinstance(e.repeated, (int, str))
-	int      ret;
 
 	return ${e.decode}(decoder, &value->${e.id}[id]);
 #else

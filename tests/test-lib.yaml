@@ -78,7 +78,7 @@ declarations:
       -
         name: int-array
         type: s32
-        repeated: 4096
+        repeated: 512
       -
         name: string
         type: str

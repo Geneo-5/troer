@@ -21,6 +21,13 @@ multilineCommentEndToken = *@@
 builtins             = builtin.a
 builtin.a-cflags     = $(EXTRA_CFLAGS)
 builtin.a-objs       = @{lib.name}.o
+@@if @lib.json
+builtin.a-objs      += @{lib.name}-json.o
+@@end if
+@@if @lib.schema == 'exchange'
+builtin.a-objs      += @{lib.name}-srv.o
+builtin.a-objs      += @{lib.name}-clt.o
+@@end if
 @@else
 
 config-in   := Config.in
@@ -52,6 +59,13 @@ common-ldflags        := $(common-cflags) \
 @@if @shared
 solibs := lib@{lib.name}.so
 lib@{lib.name}.so-objs       = shared/@{lib.name}.o
+@@if @lib.json
+lib@{lib.name}.so-objs      += shared/@{lib.name}-json.o
+@@end if
+@@if @lib.schema == 'exchange'
+lib@{lib.name}.so-objs      += shared/@{lib.name}-srv.o
+lib@{lib.name}.so-objs      += shared/@{lib.name}-clt.o
+@@end if
 lib@{lib.name}.so-cflags     = $(filter-out -fpie -fPIE,$(common-cflags)) -fpic
 lib@{lib.name}.so-ldflags    = $(filter-out -fpie -fPIE,$(common-ldflags))
 lib@{lib.name}.so-ldflags   += -shared -Bsymbolic -fpic
@@ -62,6 +76,13 @@ lib@{lib.name}.so-pkgconfig  =@{pkgconfig}
 @@if @static
 arlibs := lib@{lib.name}.a
 lib@{lib.name}.a-objs      = static/@{lib.name}.o
+@@if @lib.json
+lib@{lib.name}.a-objs     += static/@{lib.name}-json.o
+@@end if
+@@if @lib.schema == 'exchange'
+lib@{lib.name}.a-objs     += static/@{lib.name}-srv.o
+lib@{lib.name}.a-objs     += static/@{lib.name}-clt.o
+@@end if
 lib@{lib.name}.a-cflags    = $(common-cflags)
 lib@{lib.name}.a-pkgconfig =@{pkgconfig}
 
@@ -139,6 +160,13 @@ override distfiles = include/@{lib.name}/lib.h \
                      ebuild.mk \
                      Makefile \
                      README.rst \
+@@if @lib.schema == 'exchange'
+                     @{lib.name}-srv.c \
+                     @{lib.name}-clt.c \
+@@end if
+@@if @lib.json
+                     @{lib.name}-json.c \
+@@end if
                      @{lib.name}.c
 
 # Override InterSphinx eBuild base documentation URI and make it point to online
@@ -146,6 +174,10 @@ override distfiles = include/@{lib.name}/lib.h \
 dist: export EBUILDDOC_TARGET_PATH := http://grgbr.github.io/ebuild/
 dist: export STROLLDOC_TARGET_PATH := http://grgbr.github.io/stroll/
 dist: export DPACKDOC_TARGET_PATH  := http://grgbr.github.io/dpack/
+@@if @lib.schema == 'exchange'
+dist: export GALVDOC_TARGET_PATH   := http://grgbr.github.io/galv/
+dist: export HEDDOC_TARGET_PATH    := http://geneo-5.github.io/hed/
+@@end if
 
 @@end if
 # ex: filetype=make

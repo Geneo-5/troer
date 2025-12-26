@@ -48,10 +48,9 @@ pack_to_file(char * file)
 		return ret;
 
 	lib.uint8 = 5;
-	lib.int_array_nb = 5;
 	stroll_lvstr_lend(&lib.string, "testPattern_1");
 
-	if (lib_check_afl(&lib)) {
+	if (lib_chk_afl(&lib)) {
 		printf("Bad format for lib_afl\n");
 		return 1;
 	}
@@ -70,7 +69,7 @@ pack_to_file(char * file)
 	}
 
 	dpack_encoder_init_buffer(&enc, out, LIB_AFL_PACKED_SIZE_MAX);
-	if (lib_encode_afl(&enc, &lib)) {
+	if (lib_enc_afl(&enc, &lib)) {
 		printf("Fail to encode lib_afl\n");
 		goto error;
 	}
@@ -85,7 +84,7 @@ pack_to_file(char * file)
 	dpack_decoder_init_buffer(&dec, (const char *)out,
 				  dpack_encoder_space_used(&enc));
 
-	obj = lib_decode_afl_to_json(&dec);
+	obj = lib_dec_afl_to_json(&dec);
 	if (!obj) {
 		printf("Fail to decode to json\n");
 		goto error;
@@ -162,15 +161,15 @@ int main(int argc, char * const argv[])
 			goto end;
 
 		dpack_encoder_init_buffer(&enc, out, LIB_AFL_PACKED_SIZE_MAX);
-		ret = lib_encode_afl_from_json(&enc, obj);
+		ret = lib_enc_afl_from_json(&enc, obj);
 		if (!ret) {
 			dpack_decoder_init_buffer(&dec, out,
 					dpack_encoder_space_used(&enc));
 			assert(!lib_init_afl(&lib));
-			assert(!lib_decode_afl(&dec, &lib));
+			assert(!lib_dec_afl(&dec, &lib));
 			dpack_encoder_fini(&enc, DPACK_DONE);
 			dpack_encoder_init_buffer(&enc, out, LIB_AFL_PACKED_SIZE_MAX);
-			assert(!lib_encode_afl(&enc, &lib));
+			assert(!lib_enc_afl(&enc, &lib));
 			abort = DPACK_DONE;
 			dpack_decoder_fini(&dec);
 			lib_fini_afl(&lib);

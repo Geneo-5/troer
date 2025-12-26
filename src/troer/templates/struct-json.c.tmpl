@@ -104,7 +104,7 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 		return -EINVAL;
 #end if
 	
-	ret = dpack_array_begin_encode(encoder, nb);
+	ret = dpack_array_begin_encode(encoder, (unsigned int)nb);
 	if (ret)
 		return ret;
 

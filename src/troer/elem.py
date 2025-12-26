@@ -270,6 +270,10 @@ class StrElem(Elem):
                 pcre2.compile(self.yaml['pattern'])
             else:
                 lib.header.add("<regex.h>")
+                if self.yaml['pattern'][0] != '^':
+                    self.yaml['pattern'] = '^' + self.yaml['pattern']
+                if self.yaml['pattern'][-1] != '$':
+                    self.yaml['pattern'] += '$'
                 compile(self.yaml['pattern'])
 
 class EnumEntry(Elem):

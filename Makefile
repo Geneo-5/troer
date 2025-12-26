@@ -7,8 +7,6 @@
 
 EXTERNDIR       := $(CURDIR)/extern
 EBUILDDIR       := $(EXTERNDIR)/ebuild
-DPACKDIR        := $(EXTERNDIR)/dpack
-STROLLDIR       := $(EXTERNDIR)/stroll
 DEPENDSDIR      := $(EXTERNDIR)/depends
 AFLDIR          := $(EXTERNDIR)/AFLplusplus
 BUILDDIR        := $(CURDIR)/build
@@ -19,7 +17,7 @@ EXTRA_CFLAGS    := -I$(DESTDIR)/usr/local/include -I/usr/include \
 		   -Wcast-qual -Wcast-align -Wmissing-declarations -Xanalyzer \
 		   -ggdb -g
 EXTRA_LDFLAGS   := -L$(DESTDIR)/usr/local/lib -L/usr/lib/x86_64-linux-gnu/ -rdynamic
-LLVM_VERSION    := 18
+LLVM_VERSION    := 19
 CC              := $(DESTDIR)/usr/local/bin/afl-clang-lto
 MAKE_ARGS        = EXTRA_CFLAGS:="$(EXTRA_CFLAGS)" \
 		   EXTRA_LDFLAGS:="$(EXTRA_LDFLAGS)" \
@@ -36,6 +34,11 @@ PYTHON          := $(VENV)/bin/python3
 GIT_EBUILD      := https://github.com/grgbr/ebuild.git
 GIT_DPACK       := https://github.com/grgbr/dpack.git
 GIT_STROLL      := https://github.com/grgbr/stroll.git
+GIT_UTILS       := https://github.com/grgbr/utils.git
+GIT_UTILS       := https://github.com/grgbr/utils.git
+GIT_GALV        := https://github.com/grgbr/galv.git -b svc
+GIT_ELOG        := https://github.com/grgbr/elog.git
+GIT_HED         := https://github.com/geneo-5/hed.git
 GIT_AFLPLUSPLUS := https://github.com/AFLplusplus/AFLplusplus.git
 
 AFL_MAKE_ARGS   := BUILDDIR:=$(BUILDDIR)/afl DESTDIR:="$(DESTDIR)" \
@@ -47,7 +50,7 @@ AFL_MAKE_ARGS   := BUILDDIR:=$(BUILDDIR)/afl DESTDIR:="$(DESTDIR)" \
 
 export EBUILDDIR
 
-all: test-lib
+all: test-lib test-exchange
 
 export PATH := $(VENV)/bin:$(DESTDIR)/usr/local/bin:$(PATH)
 export LD_LIBRARY_PATH := $(DESTDIR)/usr/local/lib
@@ -84,15 +87,21 @@ test-%: tests/test-%.yaml | $(BUILDDIR)/test-% \
 	@$(CC)  $(EXTRA_CFLAGS) \
 		$(call pkgconfig, --cflags libdpack) \
 		$(call pkgconfig, --cflags libstroll) \
+		$(call pkgconfig, --cflags libhed) \
+		$(call pkgconfig, --cflags libgalv) \
+		$(call pkgconfig, --cflags libutils) \
+		$(call pkgconfig, --cflags libelog) \
 		$(call pkgconfig, --cflags libtest_$*) \
 		$(call pkgconfig, --cflags json-c) \
 		$(call pkgconfig, --cflags pcre2-8) \
 		$(EXTRA_LDFLAGS) -l:libdpack.a -l:libstroll.a -l:libjson-c.a \
-		-l:libpcre2-8.a -l:libtest-$*.a \
+		-l:libutils.a -l:libgalv.a -l:libhed.a -l:libetux_timer_heap.a \
+		$(call pkgconfig, --ldflags libelog) \
+		-l:libtest-$*.a \
 		-o $(BUILDDIR)/test_$* \
 		tests/$*.c \
 
-install: venv dpack stroll
+install: venv dpack stroll utils galv hed elog
 
 clean:
 	@rm -rf $(BUILDDIR)/troer-*
@@ -118,7 +127,7 @@ $(BUILDDIR)/% $(DESTDIR)/%:
 
 $(EXTERNDIR)/%: | $(EXTERNDIR)
 	@echo ===== Git clone $*
-	@git clone $($(call UP,GIT_$*)) $@
+	git clone $($(call UP,GIT_$*)) $@
 
 #################### AFL++
 
@@ -127,37 +136,32 @@ $(CC): | $(AFLDIR)
 	@$(MAKE) -C $(AFLDIR) $(AFL_MAKE_ARGS) distrib
 	@$(MAKE) -C $(AFLDIR) $(AFL_MAKE_ARGS) install
 
-#################### STROLL
+define extern_cmd
+guiconfig-$(strip $(1)): | $$(EXTERNDIR)/$(strip $(1)) $$(EBUILDDIR) $$(AFLDIR) $$(CC)
+	@$$(MAKE) -C $$(EXTERNDIR)/$(strip $(1)) $$(MAKE_ARGS) BUILDDIR:=$$(BUILDDIR)/$(strip $(1)) menuconfig
 
-guiconfig-stroll: | $(STROLLDIR) $(EBUILDDIR) $(AFLDIR) $(CC)
-	@$(MAKE) -C $(STROLLDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/stroll menuconfig
+$$(BUILDDIR)/$(strip $(1))/.config: $$(BUILDDIR)/$(strip $(1)) | $$(EXTERNDIR)/$(strip $(1)) $$(EBUILDDIR) $$(AFLDIR) $$(CC)
+	@cp defconfig/$(strip $(1)).defconfig $$@
+	@$$(MAKE) -C $$(EXTERNDIR)/$(strip $(1)) $$(MAKE_ARGS) BUILDDIR:=$$(BUILDDIR)/$(strip $(1)) olddefconfig
 
-$(BUILDDIR)/stroll/.config: $(BUILDDIR)/stroll | $(STROLLDIR) $(EBUILDDIR) $(AFLDIR) $(CC)
-	@cp defconfig/stroll.defconfig $@
-	@$(MAKE) -C $(STROLLDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/stroll olddefconfig
+$$(DESTDIR)/usr/local/lib/lib$(strip $(1)).a: $$(BUILDDIR)/$(strip $(1))/.config $(2)
+	@echo ===== build $(strip $(1))
+	@$$(MAKE) -C $$(EXTERNDIR)/$(strip $(1)) $$(MAKE_ARGS) BUILDDIR:=$$(BUILDDIR)/$(strip $(1)) build
+	@$$(MAKE) -C $$(EXTERNDIR)/$(strip $(1)) $$(MAKE_ARGS) BUILDDIR:=$$(BUILDDIR)/$(strip $(1)) install
 
-$(DESTDIR)/usr/local/lib/libstroll.a: $(BUILDDIR)/stroll/.config
-	@echo ===== build stroll
-	@$(MAKE) -C $(STROLLDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/stroll build
-	@$(MAKE) -C $(STROLLDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/stroll install
+$(strip $(1)): $$(DESTDIR)/usr/local/lib/lib$(strip $(1)).a
+endef
 
-stroll: $(DESTDIR)/usr/local/lib/libstroll.a
+define extern_rules
+$(eval $(call extern_cmd, $(1), $(2)))
+endef
 
-#################### DPACK
-
-guiconfig-dpack: | $(DPACKDIR) $(EBUILDDIR) $(AFLDIR) $(CC)
-	@$(MAKE) -C $(DPACKDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/dpack menuconfig
-
-$(BUILDDIR)/dpack/.config: $(BUILDDIR)/dpack | $(DPACKDIR) $(EBUILDDIR) $(AFLDIR) $(CC)
-	@cp defconfig/dpack.defconfig $@
-	@$(MAKE) -C $(DPACKDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/dpack olddefconfig
-
-$(DESTDIR)/usr/local/lib/libdpack.a: $(BUILDDIR)/dpack/.config stroll
-	@echo ===== build dpack
-	@$(MAKE) -C $(DPACKDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/dpack build
-	@$(MAKE) -C $(DPACKDIR) $(MAKE_ARGS) BUILDDIR:=$(BUILDDIR)/dpack install
-
-dpack: $(DESTDIR)/usr/local/lib/libdpack.a
+$(call extern_rules, utils)
+$(call extern_rules, stroll, utils)
+$(call extern_rules, dpack, stroll)
+$(call extern_rules, elog, utils)
+$(call extern_rules, galv, elog)
+$(call extern_rules, hed, galv dpack)
 
 #################### VENV
 

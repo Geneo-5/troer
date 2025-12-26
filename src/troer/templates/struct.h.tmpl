@@ -196,7 +196,8 @@ ${fini}(${type} * value)
 #if 'repeated' in $e
 
 static inline size_t  __${pre}nonull(1) ${deprecated}
-${pid}_get_${e.id}_nb(const ${type} * value)
+#set unused = " __unused" if isinstance(e.repeated, (int, str)) else ""
+${pid}_get_${e.id}_nb(const ${type} * value${unused})
 {
 	${assert_fn}(value);
 

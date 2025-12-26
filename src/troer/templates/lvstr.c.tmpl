@@ -47,7 +47,7 @@ ${check}(const ${type} * value)
 	if (ret)
 		return -ret;
 
-	ret = regexec(&regex, stroll_lvstr_cstr(value), 0, NULL, 0);
+	ret = regexec(&regex, stroll_lvstr_cstr(value), 0, NULL, REG_NOTBOL | REG_NOTEOL);
 	regfree(&regex);
 	if (!ret)
 		return -EINVAL;
