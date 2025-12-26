@@ -17,3 +17,14 @@ int main(int argc, char * const argv[])
 	return ret;
 }
 
+
+int
+rpc_srv_add(struct hed_rpc_msg *msg, struct rpc_tuple *req)
+{
+	int32_t ans;
+
+	ans  = rpc_tuple_get_a(req);
+	ans += rpc_tuple_get_b(req);
+
+	return rpc_ans_add(msg, 0, ans);
+}

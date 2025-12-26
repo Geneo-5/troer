@@ -95,9 +95,8 @@ test-%: tests/test-%.yaml | $(BUILDDIR)/test-% \
 		$(call pkgconfig, --cflags json-c) \
 		$(call pkgconfig, --cflags pcre2-8) \
 		$(EXTRA_LDFLAGS) -l:libdpack.a -l:libstroll.a -l:libjson-c.a \
-		-l:libutils.a -l:libgalv.a -l:libhed.a -l:libetux_timer_heap.a \
-		$(call pkgconfig, --ldflags libelog) \
-		-l:libtest-$*.a \
+		-l:libutils.a -l:libgalv.a -l:libhed.a -letux_timer_heap \
+		-lelog -l:libtest-$*.a \
 		-o $(BUILDDIR)/test_$* \
 		tests/$*.c \
 
