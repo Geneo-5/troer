@@ -2,61 +2,30 @@ schema: storage
 name: test-storage
 version: 0.0.1
 doc: Test storage schema and idl
-prefix: t1_
+prefix: stk_
 
-definitions:
+declarations:
   -
-    name: test-const-1
-    type: const
-    value: "toto"
-  -
-    name: test-const-2
-    type: const
-    value: 1
-  -
-    name: test-enum-1
-    type: enum
-    doc: |
-      Ceci est test super long. Ceci est un test super long. Ceci est un test
-      super long. Ceci est un test super long. Ceci est un test super long.
-      Ceci est un test super long. Ceci est un test super long.\\
-      \\
-      Ceci est une nouvelle phrase pour un test super long.
+    name: tuple
+    type: struct
     entries:
-      - enum-1
-      - enum-2
-      - enum-3
-      - enum-4
-      - enum-5
-  -
-    name: test-enum-2
-    type: enum
-    entries:
-      - 
-        name: bool-true
-        value: "0x5A"
-        doc: C'est true
       -
-        name: bool-false
-        value: 0xA5
-        doc: |
-          test test test test test test test test test test test test test test
-          test test test
+        name: a
+        type: s32
+      -
+        name: b
+        type: s32
   -
-    name: test-flags-1
-    type: flags
-    entries:
-      - flags-1
-      - flags-2
-      - flags-3
-      - flags-4
-      - flags-5
-# TODO: fix me
-#  -
-#    name: test-ref-1
-#    type: ref
-#    header: test/ref.h
-#    pack: test_ref_1_pack
-#    unpack: test_ref_1_unpack
-#    obj: test_ref_1_st
+    name: int
+    type: s32
 
+repositories:
+  -
+    name: test_object
+    type: object
+    object: $int
+  -
+    name: test_collection
+    type: collection
+    object: $tuple
+    key: $tuple_a

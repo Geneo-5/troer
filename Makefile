@@ -50,7 +50,7 @@ AFL_MAKE_ARGS   := BUILDDIR:=$(BUILDDIR)/afl DESTDIR:="$(DESTDIR)" \
 
 export EBUILDDIR
 
-all: test-lib test-exchange
+all: test-lib test-exchange test-storage
 
 export PATH := $(VENV)/bin:$(DESTDIR)/usr/local/bin:$(PATH)
 export LD_LIBRARY_PATH := $(DESTDIR)/usr/local/lib
@@ -96,7 +96,7 @@ test-%: tests/test-%.yaml | $(BUILDDIR)/test-% \
 		$(call pkgconfig, --cflags pcre2-8) \
 		$(EXTRA_LDFLAGS) -l:libdpack.a -l:libstroll.a -l:libjson-c.a \
 		-l:libutils.a -l:libgalv.a -l:libhed.a -letux_timer_heap \
-		-lelog -l:libtest-$*.a \
+		-lelog -l:libgdbm.a -l:libtest-$*.a \
 		-o $(BUILDDIR)/test_$* \
 		tests/$*.c \
 

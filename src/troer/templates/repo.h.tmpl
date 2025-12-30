@@ -1,0 +1,31 @@
+${type} {
+	struct stroll_lvstr path;
+#for $e in $entries
+#if $e.type == 'object'
+	int ${e.id};
+#else
+	GDBM_FILE ${e.id};
+#end if
+#end for
+};
+
+extern int
+${init}(${type} * repo, const char * path)
+ __${pre}nonull(1, 2) __warn_result;
+
+extern void
+${fini}(${type} * repo)
+ __${pre}nonull(1);
+
+extern int
+${pre}sync_${id}(${type} * repo)
+ __${pre}nonull(1);
+
+extern int
+${pre}reload_${id}(${type} * repo)
+ __${pre}nonull(1);
+
+#for $e in $entries:
+${e.getDeclaration()}
+#end for
+## ex: filetype=c

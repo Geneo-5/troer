@@ -389,6 +389,45 @@ class RpcElem(EnumElem):
         tmpl = read_text(templates, f"rpc.h.tmpl")
         return str(hdr) + '\n'  + str(Template(tmpl, self))
 
+class RepoEntry(Elem):
+    def __init__(self, lib, yaml, parent):
+        self.tmpl  = 'repo-' + yaml['type']
+        super().__init__(lib, yaml)
+
+        if yaml['type'] == 'object':
+            lib.header.add("<utils/file.h>")
+        if yaml['type'] == 'collection':
+            lib.header.add("<gdbm.h>")
+            lib.header.add("<stroll/page.h>")
+
+        self.parent = parent
+        self.object = RefElem(yaml['object'][1:], lib, yaml)
+        if 'key' in yaml:
+            self.key = RefElem(yaml['key'][1:], lib, yaml)
+
+class RepoElem(Elem):
+    def __init__(self, lib, yaml):
+        super().__init__(lib, yaml)
+        lib.header.add("<stroll/lvstr.h>")
+        lib.header.add("<stdio.h>")
+        lib.header.add("<string.h>")
+        self.tmpl  = 'repo'
+        self.type  = f"struct {self.pid}"
+        self.ampersand = '&'
+        self.asterisk  = '*'
+        self.init    = f"{self.pre}init_{self.id}"
+        self.fini    = f"{self.pre}fini_{self.id}"
+        self.entries = []
+        self.max_path = 0
+        for i in self.yaml['entries']:
+            e = RepoEntry(self.lib, i, self)
+            self.entries.append(e)
+            name = f"{self.name}_{e.name}"
+            if name in self.lib.elems:
+                raise Exception(f"{name} early exist")
+            self.lib.elems[name] = e
+            self.max_path = max(self.max_path, len(e.name) + 1 + 4 + 1)
+
 class RefElem(Elem):
     def __init__(self, elem, lib, yaml):
         super().__init__(lib, yaml)
@@ -561,7 +600,7 @@ class Lib(Doc):
 class Exchange(Lib):
     def __init__(self, yaml, args):
         super().__init__(yaml, args)
-        self.header.add("<galv/session.h>")
+        self.header.add("<hed/server.h>")
         self.rpc = {
                 'name': 'rpc-enum',
                 'entries': yaml['rpc']
@@ -574,6 +613,15 @@ class Exchange(Lib):
         self._rendering(outputDir, indent, 'rpc-srv.c', f'{self.name}-srv.c')
         print(f"  GEN {outputDir}/{self.name}-clt.c")
         self._rendering(outputDir, indent, 'rpc-clt.c', f'{self.name}-clt.c')
+
+class Storage(Lib):
+    def __init__(self, yaml, args):
+        super().__init__(yaml, args)
+        self.rpc = {
+                'name': 'repo',
+                'entries': yaml['repositories']
+        }
+        self.addElem('repo', "", self.rpc)
 
 def newElem(type, * args):
     if type[0] == '$':
