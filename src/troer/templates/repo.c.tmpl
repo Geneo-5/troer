@@ -1,3 +1,21 @@
+
+#if $flags2gdbm
+static int
+${pre}flags2gdbm(int flags)
+{
+	if (flags & (O_CREAT | O_TRUNC))
+		return GDBM_NEWDB;
+
+	if (flags & O_CREAT)
+		return GDBM_WRCREAT;
+
+	if (flags & (O_WRONLY | O_RDWR))
+		return GDBM_WRITER;
+
+	return GDBM_READER;
+}
+
+#end if
 static void __${pre}nonull(1)
 ${pre}close(${type} * repo)
 {
@@ -19,7 +37,7 @@ ${pre}close(${type} * repo)
 }
 
 static int __${pre}nonull(1) __warn_result
-${pre}open(${type} * repo)
+${pre}open(${type} * repo, int flags)
 {
 	${assert_fn}(repo);
 
@@ -36,7 +54,10 @@ ${pre}open(${type} * repo)
 	         stroll_lvstr_cstr(&repo->path));
 #if $e.type == 'object'
 	${assert_fn}(repo->${e.id} < 0);
-	repo->${e.id} = ufile_new(name, O_RDWR | O_CLOEXEC, 0600);
+	if (flags & O_CREAT)
+		repo->${e.id} = ufile_new(name, flags | O_CLOEXEC, repo->mode);
+	else
+		repo->${e.id} = ufile_open(name, flags | O_CLOEXEC);
 	if (repo->${e.id} < 0) {
 		ret = repo->${e.id};
 		goto error;
@@ -44,10 +65,10 @@ ${pre}open(${type} * repo)
 #else
 
 	repo->${e.id} = gdbm_open(name, (int)stroll_page_size(),
-	                          GDBM_WRCREAT | GDBM_CLOEXEC | GDBM_XVERIFY,
-	                          0600, NULL);
+		${pre}flags2gdbm(flags) | GDBM_CLOEXEC | GDBM_XVERIFY,
+		(int)repo->mode, NULL);
 	if (!repo->${e.id}) {
-		ret = -gdbm_errno;
+		ret = -EACCES;
 		goto error;
 	}
 #end if
@@ -62,14 +83,19 @@ error:
 }
 
 int __${pre}nonull(1, 2) __warn_result
-${init}(${type} * repo, const char * path)
+${pre}open_${id}(${type} * repo, const char * path, int flags, mode_t mode)
 {
 	${assert_fn}(repo);
 	${assert_fn}(path);
-	${assert_fn}(strlen(path));
+	${assert_fn}(strlen(path) > 0);
+	${assert_fn}(!(flags & (~(O_RDWR | O_RDONLY | O_CREAT | O_TRUNC))));
+	${assert_fn}(!(flags & O_CREAT) | (flags & O_RDWR));
+	${assert_fn}(!(flags & O_TRUNC) | (flags & O_CREAT));
 
 	int ret;
 
+	repo->flags = flags & O_ACCMODE;
+	repo->mode = mode;
 #for $e in $entries
 #if $e.type == 'object'
 	repo->${e.id} = -1;
@@ -77,23 +103,31 @@ ${init}(${type} * repo, const char * path)
 	repo->${e.id} = NULL;
 #end if
 #end for
+	repo->buf = malloc(sizeof(char) * ${pid.upper()}_MAX_PAYLOAD);
+	if (!repo->buf)
+		return -ENOMEM;
 
 	ret = stroll_lvstr_init_dup(&repo->path, path);
-	if (ret)
+	if (ret) {
+		free(repo->buf);
 		return ret;
+	}
 	
-	ret = ${pre}open(repo);
-	if (ret)
+	ret = ${pre}open(repo, flags);
+	if (ret) {
 		stroll_lvstr_fini(&repo->path);
+		free(repo->buf);
+	}
 
 	return ret;
 }
 
 void __${pre}nonull(1)
-${fini}(${type} * repo)
+${pre}close_${id}(${type} * repo)
 {
 	${pre}close(repo);
 	stroll_lvstr_fini(&repo->path);
+	free(repo->buf);
 }
 
 int __${pre}nonull(1)
@@ -112,8 +146,11 @@ ${pre}sync_${id}(${type} * repo)
 #else
 
 	${assert_fn}(repo->${e.id});
+	if (gdbm_reorganize(repo->${e.id}))
+		return -EINVAL;
+
 	if (gdbm_sync(repo->${e.id}))
-		return -gdbm_errno;
+		return -EINVAL;
 #end if
 #end for
 
@@ -126,7 +163,7 @@ ${pre}reload_${id}(${type} * repo)
 	${assert_fn}(repo);
 
 	${pre}close(repo);
-	return ${pre}open(repo);
+	return ${pre}open(repo, repo->flags);
 }
 
 #for $e in $entries

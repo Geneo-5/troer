@@ -15,7 +15,7 @@ VENV            := $(DESTDIR)
 EXTRA_CFLAGS    := -I$(DESTDIR)/usr/local/include -I/usr/include \
 		   -Wall -Wextra -Wformat=2 -Wconversion -Wundef -Wshadow \
 		   -Wcast-qual -Wcast-align -Wmissing-declarations -Xanalyzer \
-		   -ggdb -g
+		   -ggdb -g -D_GNU_SOURCE
 EXTRA_LDFLAGS   := -L$(DESTDIR)/usr/local/lib -L/usr/lib/x86_64-linux-gnu/ -rdynamic
 LLVM_VERSION    := 19
 CC              := $(DESTDIR)/usr/local/bin/afl-clang-lto

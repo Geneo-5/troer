@@ -1,0 +1,61 @@
+struct json_object * __${pre}nonull(1) __warn_result
+${parent.pid}_enc_${id}_to_json(${parent.type} *repo)
+{
+	${assert_fn}(repo);
+	${assert_fn}(repo->buf);
+
+	struct dpack_decoder  dec;
+	struct json_object *array;
+	struct json_object *obj;
+	struct json_object *tmp;
+	datum key;
+	datum next;
+	datum content;
+
+	array = json_object_new_array();
+	if (!array)
+		return NULL;
+
+	key = gdbm_firstkey(repo->${id});
+	while(key.dptr) {
+		obj = json_object_new_object();
+		if (!obj)
+			goto freekey;
+
+		dpack_decoder_init_buffer(&dec, key.dptr, (size_t)key.dsize);
+		tmp = ${key.decode}_to_json(&dec);
+		dpack_decoder_fini(&dec);
+		if (!tmp)
+			goto putobj;
+
+		if(json_object_object_add(obj, "key", tmp))
+			goto putobj;
+
+		content = gdbm_fetch(repo->${id}, key);
+		${assert_fn}(content.dptr);
+		dpack_decoder_init_buffer(&dec, content.dptr, (size_t)content.dsize);
+		tmp = ${object.decode}_to_json(&dec);
+		dpack_decoder_fini(&dec);
+		free(content.dptr);
+		if (!tmp)
+			goto putobj;
+
+		if(json_object_object_add(obj, "value", tmp))
+			goto putobj;
+
+		next = gdbm_nextkey(repo->${id}, key);
+		free(key.dptr);
+		key = next;
+		if (json_object_array_add(array, obj))
+			goto putobj;
+	}
+
+	return array;
+putobj:
+	json_object_put(obj);
+freekey:
+	free(key.dptr);
+	json_object_put(array);
+	return NULL;
+}
+## ex: filetype=c

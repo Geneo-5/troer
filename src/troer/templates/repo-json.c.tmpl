@@ -1,0 +1,33 @@
+struct json_object * __${pre}nonull(1) __warn_result
+${pid}_to_json(${type} * repo)
+{
+	${assert_fn}(repo);
+
+	int ret;
+	struct json_object *object;
+	struct json_object *tmp;
+
+	object = json_object_new_object();
+	if (!object)
+		return NULL;
+#for $e in $entries
+
+	tmp = ${pid}_enc_${e.id}_to_json(repo);
+	if (!tmp)
+		goto error;
+
+	ret = json_object_object_add(object, "${e.id}", tmp);
+	if (ret)
+		goto error;
+#end for
+
+	return object;
+error:
+	json_object_put(object);
+	return NULL;
+}
+
+#for $e in $entries
+${e.getDefinition('-json')}
+#end for
+## ex: filetype=c

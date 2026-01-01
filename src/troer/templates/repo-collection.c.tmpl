@@ -1,0 +1,139 @@
+#set $nonull  = '1'
+#set $nonull += ', 2' if $key.asterisk else ''
+static int __${pre}nonull($nonull) __warn_result
+${parent.pid}_${id}_enc_key(datum *idx, ${key.type} ${key.asterisk}key)
+{
+	${assert_fn}(idx);
+	${assert_fn}(idx->dptr);
+#if $key.asterisk
+	${assert_fn}(key);
+#end if
+
+	int ret;
+	struct dpack_encoder enc;
+
+	dpack_encoder_init_buffer(&enc, idx->dptr,
+	                          ${key.elem.pid.upper()}_PACKED_SIZE_MAX);
+	ret = ${key.encode}(&enc, key);
+	dpack_encoder_fini(&enc, DPACK_DONE);
+	if (ret)
+		return ret;
+
+	idx->dsize = (int)dpack_encoder_space_used(&enc);
+	return 0;
+}
+
+#set $nonull  = '1'
+#set $nonull += ', 2' if $key.asterisk else ''
+#set $nonull += ', 2' if $object.asterisk else ''
+int __${pre}nonull($nonull) __warn_result
+${parent.pid}_update_${id}(${parent.type} *repo,
+                           ${key.type} ${key.asterisk}key,
+                           const ${object.type} ${object.asterisk}value)
+{
+	${assert_fn}(repo);
+#if $key.asterisk
+	${assert_fn}(key);
+#end if
+#if $object.asterisk
+	${assert_fn}(value);
+#end if
+
+	int ret;
+	datum idx;
+	datum content;
+	struct dpack_encoder enc;
+	char idx_buf[${key.elem.pid.upper()}_PACKED_SIZE_MAX];
+
+	idx.dptr = idx_buf;
+	ret = ${parent.pid}_${id}_enc_key(&idx, key);
+	if (ret)
+		return ret;
+
+	dpack_encoder_init_buffer(&enc, repo->buf,
+	                          ${object.elem.pid.upper()}_PACKED_SIZE_MAX);
+	ret = ${object.encode}(&enc, value);
+	dpack_encoder_fini(&enc, DPACK_DONE);
+	if (ret)
+		return ret;
+
+	content.dptr = idx_buf;
+	content.dsize = (int)dpack_encoder_space_used(&enc);
+	ret = gdbm_store(repo->${id}, idx, content, GDBM_REPLACE);
+	if (ret)
+		return -EINVAL;
+
+	return 0;
+}
+
+#set $nonull = '1, 2, 3' if $key.asterisk else '1, 2'
+int __${pre}nonull($nonull) __warn_result
+${parent.pid}_get_${id}(${parent.type} *repo,
+                        ${key.type} ${key.asterisk}key,
+                        ${object.type} *value)
+{
+	${assert_fn}(repo);
+#if $key.asterisk
+	${assert_fn}(key);
+#end if
+	${assert_fn}(value);
+
+	int ret;
+	datum idx;
+	datum content;
+	struct dpack_decoder dec;
+
+	idx.dptr = repo->buf;
+	ret = ${parent.pid}_${id}_enc_key(&idx, key);
+	if (ret)
+		return ret;
+
+	content = gdbm_fetch(repo->${id}, idx);
+	if (content.dptr == NULL)
+		return -ENOENT;
+	
+	dpack_decoder_init_buffer(&dec, content.dptr, (size_t)content.dsize);
+	ret = ${object.decode}(&dec, value);
+	dpack_decoder_fini(&dec);
+	free(content.dptr);
+	return ret;
+}
+
+#set $nonull = '1, 2' if $key.asterisk else '1'
+int __${pre}nonull($nonull) __warn_result
+${parent.pid}_del_${id}(${parent.type} *repo,
+                           ${key.type} ${key.asterisk}key)
+{
+	${assert_fn}(repo);
+#if $key.asterisk
+	${assert_fn}(key);
+#end if
+
+	int ret;
+	datum idx;
+
+	idx.dptr = repo->buf;
+	ret = ${parent.pid}_${id}_enc_key(&idx, key);
+	if (ret)
+		return ret;
+	
+	if (gdbm_delete(repo->${id}, idx))
+		return -ENOENT;
+
+	return 0;
+}
+
+ssize_t __${pre}nonull(1) __warn_result
+${parent.pid}_${id}_count(${parent.type} *repo)
+{
+	${assert_fn}(repo);
+
+	gdbm_count_t cnt;
+
+	if (gdbm_count(repo->${id}, &cnt))
+		return -EINVAL;
+
+	return (ssize_t)cnt;
+}
+
+## ex: filetype=c

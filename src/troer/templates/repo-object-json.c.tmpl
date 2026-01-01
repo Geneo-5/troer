@@ -1,0 +1,22 @@
+struct json_object * __${pre}nonull(1) __warn_result
+${parent.pid}_enc_${id}_to_json(${parent.type} *repo)
+{
+	${assert_fn}(repo);
+	${assert_fn}(repo->buf);
+
+	struct dpack_decoder  dec;
+	struct json_object *obj;
+	ssize_t len;
+
+	ufile_lseek(repo->${id}, SEEK_SET, 0);
+	len = ufile_read(repo->${id}, repo->buf,
+	                 ${object.elem.pid.upper()}_PACKED_SIZE_MAX);
+	if (len < 0)
+		return NULL;
+
+	dpack_decoder_init_buffer(&dec, (const char *)repo->buf, (size_t)len);
+	obj = ${object.decode}_to_json(&dec);
+	dpack_decoder_fini(&dec);
+	return obj;
+}
+## ex: filetype=c

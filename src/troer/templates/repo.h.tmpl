@@ -1,29 +1,41 @@
+
+#define ${pid.upper()}_MAX_PAYLOAD $getMaxSize()
+
 ${type} {
-	struct stroll_lvstr path;
+	char                *buf;
 #for $e in $entries
 #if $e.type == 'object'
-	int ${e.id};
+	int                  ${e.id};
 #else
-	GDBM_FILE ${e.id};
+	GDBM_FILE            ${e.id};
 #end if
 #end for
+	struct stroll_lvstr  path;
+	int                  flags;
+	mode_t               mode;
 };
 
 extern int
-${init}(${type} * repo, const char * path)
+${pre}open_${id}(${type} * repo, const char * path, int flags, mode_t mode)
  __${pre}nonull(1, 2) __warn_result;
 
 extern void
-${fini}(${type} * repo)
+${pre}close_${id}(${type} * repo)
  __${pre}nonull(1);
 
 extern int
 ${pre}sync_${id}(${type} * repo)
- __${pre}nonull(1);
+ __${pre}nonull(1) __warn_result;
 
 extern int
 ${pre}reload_${id}(${type} * repo)
- __${pre}nonull(1);
+ __${pre}nonull(1) __warn_result;
+#if $json
+
+extern struct json_object *
+${pid}_to_json(${type} * repo)
+ __${pre}nonull(1) __warn_result;
+#end if
 
 #for $e in $entries:
 ${e.getDeclaration()}

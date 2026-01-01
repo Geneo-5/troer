@@ -1,0 +1,32 @@
+#set $nonull = '1, 2, 3' if $key.asterisk else '1, 2'
+extern int
+${parent.pid}_get_${id}(${parent.type} *repo,
+                        ${key.type} ${key.asterisk}key,
+                        ${object.type} *value)
+	__${pre}nonull($nonull) __warn_result;
+
+#set $nonull  = '1'
+#set $nonull += ', 2' if $key.asterisk else ''
+#set $nonull += ', 2' if $object.asterisk else ''
+extern int
+${parent.pid}_update_${id}(${parent.type} *repo,
+                           ${key.type} ${key.asterisk}key,
+                           const ${object.type} ${object.asterisk}value)
+	__${pre}nonull($nonull) __warn_result;
+
+#set $nonull = '1, 2' if $key.asterisk else '1'
+extern int
+${parent.pid}_del_${id}(${parent.type} *repo,
+                           ${key.type} ${key.asterisk}key)
+	__${pre}nonull($nonull) __warn_result;
+
+extern ssize_t
+${parent.pid}_${id}_count(${parent.type} *repo)
+	__${pre}nonull(1) __warn_result;
+
+#if $json
+extern struct json_object *
+${parent.pid}_enc_${id}_to_json(${parent.type} *repo)
+	__${pre}nonull(1) __warn_result;
+#end if
+## ex: filetype=c

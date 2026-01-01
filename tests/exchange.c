@@ -2,7 +2,7 @@
 #include <hed/server.h>
 #include <test-exchange/lib.h>
 
-int main(int argc, char * const argv[])
+int main(void)
 {
 	struct hed_server srv;
 	int ret;

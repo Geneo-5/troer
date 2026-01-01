@@ -67,6 +67,26 @@ class Renderer():
     def rendering(self):
         raise Exception(f"Unimplemented function")
 
+    def formatMaxSize(self, r, s, end = ')'):
+        while len(r) > 1:
+            R = set()
+            while len(r) > 1:
+                r1 = r.pop()
+                r2 = r.pop()
+                R.add(f'STROLL_CONST_MAX( {r1}, {r2})')
+            if r:
+                R.add(r.pop())
+            r = R
+        c = len(s);
+        for e in r.pop().split(' '):
+            if c + len(e) + 1 < (80 - 9):
+                s += e + ' '
+            else:
+                s += '\\\n\t ' + e + ' '
+                c = 0
+            c += len(e) + 1
+        return s[:-1] + end
+
 class Doc(Renderer):
     def __init__(self, yaml):
         self.yaml = yaml
@@ -340,27 +360,6 @@ class RpcElem(EnumElem):
             elif i['type'] == 'notify':
                 self.ntfy.append(e)
 
-    def _formatMaxSize(self, r, s):
-        while len(r) > 1:
-            R = set()
-            while len(r) > 1:
-                r1 = r.pop()
-                r2 = r.pop()
-                R.add(f'STROLL_CONST_MAX( {r1}, {r2})')
-            if r:
-                R.add(r.pop())
-            r = R
-        c = len(s);
-        for e in r.pop().split(' '):
-            if c + len(e) + 1 < (80 - 9):
-                s += e + ' '
-            else:
-                s += '\\\n\t ' + e + ' '
-                c = 0
-            c += len(e) + 1
-        s = s[:-1] + ')'
-        return s
-
     def getSrvMaxSize(self):
         r = set()
         for e in self.req + self.ntfy:
@@ -369,7 +368,7 @@ class RpcElem(EnumElem):
         if not r:
             return '(DPACK_UINT32_SIZE_MAX)'
         s = '\\\n\t(DPACK_UINT32_SIZE_MAX + '
-        return self._formatMaxSize(r, s)
+        return self.formatMaxSize(r, s)
     
     def getCltMaxSize(self):
         r = set()
@@ -382,7 +381,7 @@ class RpcElem(EnumElem):
         if not r:
             return '(DPACK_UINT32_SIZE_MAX + DPACK_UINT32_SIZE_MAX)'
         s = '\\\n\t(DPACK_UINT32_SIZE_MAX + DPACK_UINT32_SIZE_MAX + '
-        return self._formatMaxSize(r, s)
+        return self.formatMaxSize(r, s)
 
     def getDeclaration(self):
         hdr = super().getDeclaration()
@@ -391,12 +390,13 @@ class RpcElem(EnumElem):
 
 class RepoEntry(Elem):
     def __init__(self, lib, yaml, parent):
-        self.tmpl  = 'repo-' + yaml['type']
         super().__init__(lib, yaml)
+        self.tmpl  = 'repo-' + yaml['type']
 
         if yaml['type'] == 'object':
             lib.header.add("<utils/file.h>")
         if yaml['type'] == 'collection':
+            parent.flags2gdbm = True
             lib.header.add("<gdbm.h>")
             lib.header.add("<stroll/page.h>")
 
@@ -419,14 +419,19 @@ class RepoElem(Elem):
         self.fini    = f"{self.pre}fini_{self.id}"
         self.entries = []
         self.max_path = 0
+        self.flags2gdbm = False
         for i in self.yaml['entries']:
             e = RepoEntry(self.lib, i, self)
             self.entries.append(e)
-            name = f"{self.name}_{e.name}"
-            if name in self.lib.elems:
-                raise Exception(f"{name} early exist")
-            self.lib.elems[name] = e
             self.max_path = max(self.max_path, len(e.name) + 1 + 4 + 1)
+
+    def getMaxSize(self):
+        r = set()
+        for e in self.entries:
+            r.add(f"{e.object.elem.pid.upper()}_PACKED_SIZE_MAX")
+            if 'key' in e:
+                r.add(f"{e.key.elem.pid.upper()}_PACKED_SIZE_MAX")
+        return self.formatMaxSize(r, '\\\n\t(')
 
 class RefElem(Elem):
     def __init__(self, elem, lib, yaml):
