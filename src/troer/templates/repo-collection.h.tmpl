@@ -1,3 +1,8 @@
+struct ${pid}_iter {
+	${parent.type} *repo;
+	datum key;
+};
+
 #set $nonull = '1, 2, 3' if $key.asterisk else '1, 2'
 extern int
 ${parent.pid}_get_${id}(${parent.type} *repo,
@@ -23,6 +28,20 @@ ${parent.pid}_del_${id}(${parent.type} *repo,
 extern ssize_t
 ${parent.pid}_${id}_count(${parent.type} *repo)
 	__${pre}nonull(1) __warn_result;
+
+extern struct ${pid}_iter *
+${parent.pid}_${id}_create_iter(${parent.type} *repo)
+	__${pre}nonull(1) __warn_result;
+
+extern int
+${parent.pid}_${id}_step(struct ${pid}_iter *iter,
+                         ${key.type} *key,
+                         ${object.type} *value)
+	__${pre}nonull(1) __warn_result;
+
+extern void
+${parent.pid}_${id}_destroy_iter(struct ${pid}_iter *iter)
+	__${pre}nonull(1);
 
 #if $json
 extern struct json_object *

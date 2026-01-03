@@ -136,4 +136,70 @@ ${parent.pid}_${id}_count(${parent.type} *repo)
 	return (ssize_t)cnt;
 }
 
+struct ${pid}_iter * __${pre}nonull(1) __warn_result
+${parent.pid}_${id}_create_iter(${parent.type} *repo)
+{
+	${assert_fn}(repo);
+
+	struct ${pid}_iter * iter;
+
+	iter = malloc(sizeof(*iter));
+	if (!iter)
+		return NULL;
+
+	iter->repo = repo;
+	iter->key = gdbm_firstkey(iter->repo->${id});
+	return iter;
+}
+
+int __${pre}nonull(1) __warn_result
+${parent.pid}_${id}_step(struct ${pid}_iter *iter,
+                         ${key.type} *key,
+                         ${object.type} *value)
+{
+	${assert_fn}(iter);
+	${assert_fn}(iter->repo);
+	${assert_fn}(iter->repo->buf);
+	${assert_fn}(iter->key.dptr);
+	${assert_fn}(!!key | !!value);
+	
+	struct dpack_decoder  dec;
+	datum content;
+	datum next;
+	int ret;
+
+	if (key) {
+		dpack_decoder_init_buffer(&dec, iter->key.dptr, (size_t)iter->key.dsize);
+		ret = ${key.decode}(&dec, key);
+		dpack_decoder_fini(&dec);
+		if (ret)
+			return ret;
+	}
+
+	if (value) {
+		content = gdbm_fetch(iter->repo->${id}, iter->key);
+		${assert_fn}(content.dptr);
+		dpack_decoder_init_buffer(&dec, content.dptr, (size_t)content.dsize);
+		ret = ${object.decode}(&dec, value);
+		dpack_decoder_fini(&dec);
+		free(content.dptr);
+		if (ret)
+			return ret;
+	}
+
+	next = gdbm_nextkey(iter->repo->${id}, iter->key);
+	free(iter->key.dptr);
+	iter->key = next;
+	return iter->key.dptr ? EAGAIN : 0;
+}
+
+void __${pre}nonull(1)
+${parent.pid}_${id}_destroy_iter(struct ${pid}_iter *iter)
+{
+	${assert_fn}(iter);
+
+	free(iter->key.dptr);
+	free(iter);
+}
+
 ## ex: filetype=c
