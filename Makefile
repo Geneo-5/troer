@@ -100,6 +100,9 @@ test-%: tests/test-%.yaml | $(BUILDDIR)/test-% \
 		-o $(BUILDDIR)/test_$* \
 		tests/$*.c \
 
+run-%: test-%
+	@$(CURDIR)/scripts/run.sh $*
+
 install: venv dpack stroll utils galv hed elog
 
 clean:
@@ -115,6 +118,7 @@ clobber:
 	@rm -rf $(EXTERNDIR)
 	@rm -rf $(BUILDDIR)
 	@rm -rf $(DESTDIR)
+	@git restore $(EXTERNDIR)
 
 $(EXTERNDIR) $(DEPENDSDIR):
 	@mkdir -p $@
@@ -125,14 +129,14 @@ $(BUILDDIR)/% $(DESTDIR)/%:
 #################### DOWNLOAD
 
 $(EXTERNDIR)/%: | $(EXTERNDIR)
-	@echo ===== Git clone $*
-	git clone $($(call UP,GIT_$*)) $@
+	@[ -n "$($(call UP,GIT_$*))" ] && echo ===== Git clone $*
+	@[ -n "$($(call UP,GIT_$*))" ] && git clone $($(call UP,GIT_$*)) $@
 
 #################### AFL++
 
 $(CC): | $(AFLDIR)
 	@echo ===== build afl++
-	@$(MAKE) -C $(AFLDIR) $(AFL_MAKE_ARGS) distrib
+	@$(MAKE) -C $(AFLDIR) $(AFL_MAKE_ARGS) source-only
 	@$(MAKE) -C $(AFLDIR) $(AFL_MAKE_ARGS) install
 
 define extern_cmd
@@ -155,8 +159,8 @@ define extern_rules
 $(eval $(call extern_cmd, $(1), $(2)))
 endef
 
-$(call extern_rules, utils)
-$(call extern_rules, stroll, utils)
+$(call extern_rules, stroll)
+$(call extern_rules, utils, stroll)
 $(call extern_rules, dpack, stroll)
 $(call extern_rules, elog, utils)
 $(call extern_rules, galv, elog)
@@ -170,7 +174,7 @@ $(VENV)/bin/python3:
 
 $(VENV)/bin/troer: $(VENV)/bin/python3
 	@echo ===== Install editable troer
-	@$(PYTHON) -m pip install -e .
+	@$(PYTHON) -m pip install --force-reinstall --find-links "$(DEPENDSDIR)" -e .
 
 venv: $(VENV)/bin/troer
 

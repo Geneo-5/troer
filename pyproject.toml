@@ -17,6 +17,7 @@ dependencies = [
 	"Cheetah3",
 	"packaging",
 	"kconfiglib",
+	"legacy-cgi; python_version >= '3.13'",
 ]
 scripts.troer = "troer.main:cli"
 
