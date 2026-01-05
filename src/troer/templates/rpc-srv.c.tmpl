@@ -118,7 +118,7 @@ ${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
 #if 'request' in $e
 	struct dpack_decoder  decoder;
 	${e.request.type} param;
-#if 'init' in $e.request
+#if 'init' in $e.request and $e.request.init
 
 	ret = ${e.request.init}(&param);
 	if (ret)
@@ -135,14 +135,14 @@ ${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
 	if (ret)
 		goto ${goto};
 
-#if 'fini' in $e.request
+#if 'fini' in $e.request and $e.request.fini
 	ret = ${e.pre}srv_${e.id}(msg, ${e.request.ampersand}param);
 	${e.request.fini}(&param);
 	return ret;
 #else
 	return ${e.pre}srv_${e.id}(msg, ${e.request.ampersand}param);
 #end if
-#if 'fini' in $e.request
+#if 'fini' in $e.request and $e.request.fini
 
 fini:
 	${e.request.fini}(&param);
