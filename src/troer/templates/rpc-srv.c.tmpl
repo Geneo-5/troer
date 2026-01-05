@@ -106,7 +106,7 @@ error:
 #end for
 
 #for $e in $rpc.req + $rpc.ntfy
-#set $goto = 'fini' if 'request' in e and 'fini' in $e.request else 'error'
+#set $goto = 'fini' if 'request' in e and 'fini' in $e.request and $e.request.fini else 'error'
 
 int __${pre}nonull(1) __nothrow __warn_result
 ${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
