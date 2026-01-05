@@ -168,10 +168,11 @@ $(call extern_rules, hed, galv dpack)
 
 #################### VENV
 
-$(VENV)/bin/python3:
+$(PYTHON):
 	@echo ===== Make python venv
-	@python3 -m venv $(VENV)
+	@$(PYTHON3) -m venv $(VENV)
 
+$(VENV)/bin/troer: CHEETAH_C_EXTENSIONS_REQUIRED=1
 $(VENV)/bin/troer: $(VENV)/bin/python3
 	@echo ===== Install editable troer
 	@$(PYTHON) -m pip install --force-reinstall --find-links "$(DEPENDSDIR)" -e .
