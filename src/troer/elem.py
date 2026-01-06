@@ -405,6 +405,8 @@ class RepoElem(Elem):
         super().__init__(lib, yaml)
         lib.header.add("<stroll/lvstr.h>")
         lib.header.add("<fcntl.h>")
+        lib.header.add("<stdio.h>")
+        lib.header.add("<utils/file.h>")
         self.tmpl  = 'repo'
         self.type  = f"struct {self.pid}"
         self.ampersand = '&'

@@ -10,15 +10,15 @@ int main(void)
 	int ret;
 	int val;
 
-	ret = stk_open_repo(&repo, "build", O_RDWR | O_CREAT | O_TRUNC, 0600);
+	ret = stk_open_repo(&repo, "build/repo", O_RDWR | O_CREAT | O_TRUNC, 0600);
 	if (ret) {
-		printf("open create fail\n");
+		printf("open create fail %d\n", ret);
 		goto exit;
 	}
 
 	ret = stk_repo_start(&repo);
 	if (ret) {
-		printf("start txn fail\n");
+		printf("start firt txn fail %d\n", ret);
 		goto exit;
 	}
 
@@ -28,7 +28,7 @@ int main(void)
 		goto exit;
 	}
 
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 3; i++) {
 		struct stk_tuple t = {
 			.a = i,
 			.b = 5,
@@ -55,7 +55,7 @@ int main(void)
 
 	ret = stk_repo_start(&repo);
 	if (ret) {
-		printf("start txn fail\n");
+		printf("start second txn fail\n");
 		goto exit;
 	}
 
@@ -71,8 +71,26 @@ int main(void)
 		goto exit;
 	}
 
+	ret = stk_repo_update_test_object(&repo, 6);
+	if (ret) {
+		printf("update object fail\n");
+		goto exit;
+	}
+
+	ret = stk_repo_commit(&repo);
+	if (ret) {
+		printf("commit fail\n");
+		goto exit;
+	}
+
+	ret = stk_rollback_repo(&repo);
+	if (ret) {
+		printf("rollback fail\n");
+		goto exit;
+	}
+
 	stk_close_repo(&repo);
-	ret = stk_open_repo(&repo, "build", O_RDONLY, 0600);
+	ret = stk_open_repo(&repo, "build/repo", O_RDONLY, 0600);
 	if (ret) {
 		printf("open fail\n");
 		goto exit;

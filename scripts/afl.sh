@@ -2,7 +2,8 @@
 
 topdir=$(realpath $(dirname $0)/..)
 builddir=${topdir}/build
-test_afl=${builddir}/test_$1
+destdir=${topdir}/out
+test_afl=${destdir}/bin/test_$1
 input=${builddir}/input
 output=${builddir}/afl
 

@@ -33,7 +33,8 @@ ${pre}open(${type} * repo, int flags)
 	if (ret)
 		goto error;
 
-	ret = mdb_env_open(repo->env, stroll_lvstr_cstr(&repo->path), f, repo->mode);
+	ret = mdb_env_open(repo->env, stroll_lvstr_cstr(&repo->path),
+			   f | MDB_NOSUBDIR, repo->mode);
 	if (ret)
 		goto error;
 
@@ -72,6 +73,7 @@ ${pre}open_${id}(${type} * repo, const char * path, int flags, mode_t mode)
 	${assert_fn}(!(flags & O_TRUNC) | (flags & O_CREAT));
 
 	int ret;
+	char *backup;
 
 	repo->env = NULL;
 	repo->txn = NULL;
@@ -81,27 +83,51 @@ ${pre}open_${id}(${type} * repo, const char * path, int flags, mode_t mode)
 	if (!repo->buf)
 		return -ENOMEM;
 
-	ret = stroll_lvstr_init_dup(&repo->path, path);
-	if (ret) {
-		free(repo->buf);
-		return ret;
-	}
-	
-	ret = ${pre}open(repo, flags);
-	if (ret) {
-		stroll_lvstr_fini(&repo->path);
-		free(repo->buf);
+	backup = malloc((strlen(path) + 8) * sizeof(char));
+	if (!backup) {
+		ret = -ENOMEM;
+		goto free_buf;
 	}
 
+	snprintf(backup, (strlen(path) + 8), "%s-backup", path);
+	ret = stroll_lvstr_init_cede(&repo->backup, backup);
+	if (ret)
+	{
+		free(backup);
+		goto free_buf;
+	}
+
+	ret = stroll_lvstr_init_dup(&repo->path, path);
+	if (ret)
+		goto free_backup;
+	
+	ret = ${pre}open(repo, flags);
+	if (ret)
+		goto free_path;
+
+	return 0;
+
+free_path:
+	stroll_lvstr_fini(&repo->path);
+free_backup:
+	stroll_lvstr_fini(&repo->backup);
+free_buf:
+	free(repo->buf);
+	repo->buf = NULL;
 	return ret;
 }
 
 void __${pre}nonull(1)
 ${pre}close_${id}(${type} * repo)
 {
+	if (!repo->buf)
+		return;
+
 	${pre}close(repo);
 	stroll_lvstr_fini(&repo->path);
+	stroll_lvstr_fini(&repo->backup);
 	free(repo->buf);
+	repo->buf = NULL;
 }
 
 
@@ -112,7 +138,21 @@ ${pid}_start(${type} * repo)
 	${assert_fn}(repo->env);
 	${assert_fn}(!repo->txn);
 
+	int fd;
+	int ret;
 	unsigned int flags = repo->flags & O_RDONLY ? MDB_RDONLY : 0;
+
+	if (!flags) {
+		fd = ufile_new(stroll_lvstr_cstr(&repo->backup),
+			O_RDWR | O_TRUNC | O_CLOEXEC, repo->mode);
+		if (fd < 0)
+			return fd;
+
+		ret = mdb_env_copyfd(repo->env, fd);
+		ufile_close(fd);
+		if (ret)
+			return ret;
+	}
 
 	return mdb_txn_begin(repo->env, NULL, flags, &repo->txn);
 }
@@ -146,8 +186,22 @@ int __${pre}nonull(1)
 ${pre}reload_${id}(${type} * repo)
 {
 	${assert_fn}(repo);
+	${assert_fn}(repo->env);
+	${assert_fn}(!repo->txn);
 
 	${pre}close(repo);
+	return ${pre}open(repo, repo->flags);
+}
+
+int __${pre}nonull(1)
+${pre}rollback_${id}(${type} * repo)
+{
+	${assert_fn}(repo);
+	${assert_fn}(repo->env);
+	${assert_fn}(!repo->txn);
+
+	${pre}close(repo);
+	rename(stroll_lvstr_cstr(&repo->backup), stroll_lvstr_cstr(&repo->path));
 	return ${pre}open(repo, repo->flags);
 }
 

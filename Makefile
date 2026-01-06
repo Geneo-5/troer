@@ -72,8 +72,8 @@ endef
 
 src := Makefile $(shell find src/ tests/ -type f)
 
-$(BUILDDIR)/test_%: EXTRA_CFLAGS+=$(call UP,-DCONFIG_TEST_$*_ASSERT)
-$(BUILDDIR)/test_%: tests/test-%.yaml $(src) | $(BUILDDIR)/test-% \
+$(DESTDIR)/bin/test_%: EXTRA_CFLAGS+=$(call UP,-DCONFIG_TEST_$*_ASSERT)
+$(DESTDIR)/bin/test_%: tests/test-%.yaml $(src) | $(BUILDDIR)/test-% \
 	$(BUILDDIR)/troer-% \
 	$(BUILDDIR)/troer-%-base \
 	$(BUILDDIR)/troer-%-builtin
@@ -99,13 +99,13 @@ $(BUILDDIR)/test_%: tests/test-%.yaml $(src) | $(BUILDDIR)/test-% \
 		$(EXTRA_LDFLAGS) -l:libdpack.a -l:libstroll.a -l:libjson-c.a \
 		-l:libutils.a -l:libgalv.a -l:libhed.a -letux_timer_heap \
 		-lelog -l:liblmdb.a -l:libtest-$*.a \
-		-o $(BUILDDIR)/test_$* \
+		-o $@ \
 		tests/$*.c
 
-test-%: $(BUILDDIR)/test_%
+test-%: $(DESTDIR)/bin/test_%
 	@:
 
-run-%: $(BUILDDIR)/test_%
+run-%: $(DESTDIR)/bin/test_%
 	@$(CURDIR)/scripts/run.sh $*
 
 install: venv dpack stroll utils galv hed elog
@@ -125,10 +125,10 @@ clobber:
 	@rm -rf $(DESTDIR)
 	@git restore $(EXTERNDIR)
 
-$(EXTERNDIR) $(DEPENDSDIR):
+$(EXTERNDIR) $(DEPENDSDIR) $(DESTDIR):
 	@mkdir -p $@
 
-$(BUILDDIR)/% $(DESTDIR)/%:
+$(BUILDDIR)/%:
 	@mkdir -p $@
 
 #################### DOWNLOAD

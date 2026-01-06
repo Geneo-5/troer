@@ -6,6 +6,7 @@ ${type} {
 	MDB_env             *env;
 	MDB_txn             *txn;
 	struct stroll_lvstr  path;
+	struct stroll_lvstr  backup;
 	int                  flags;
 	mode_t               mode;
 };
@@ -32,6 +33,10 @@ ${pre}close_${id}(${type} * repo)
 
 extern int
 ${pre}reload_${id}(${type} * repo)
+ __${pre}nonull(1) __warn_result;
+
+extern int
+${pre}rollback_${id}(${type} * repo)
  __${pre}nonull(1) __warn_result;
 #if $json
 
