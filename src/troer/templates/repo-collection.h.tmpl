@@ -1,6 +1,6 @@
 struct ${pid}_iter {
 	${parent.type} *repo;
-	datum key;
+	MDB_cursor *cursor;
 };
 
 #set $nonull = '1, 2, 3' if $key.asterisk else '1, 2'

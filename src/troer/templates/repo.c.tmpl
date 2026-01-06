@@ -1,83 +1,62 @@
-
-#if $flags2gdbm
-static int
-${pre}flags2gdbm(int flags)
-{
-	if (flags & (O_CREAT | O_TRUNC))
-		return GDBM_NEWDB;
-
-	if (flags & O_CREAT)
-		return GDBM_WRCREAT;
-
-	if (flags & (O_WRONLY | O_RDWR))
-		return GDBM_WRITER;
-
-	return GDBM_READER;
-}
-
-#end if
 static void __${pre}nonull(1)
 ${pre}close(${type} * repo)
 {
 	${assert_fn}(repo);
-#for $e in $entries
-#if $e.type == 'object'
 
-	if (repo->${e.id} > 0)
-		ufile_close(repo->${e.id});
+	if (!repo->env)
+		return;
 
-	repo->${e.id} = -1;
-#else
-	if (repo->${e.id})
-		gdbm_close(repo->${e.id});
+	if (repo->txn)
+		${pid}_abort(repo);
 
-	repo->${e.id} = NULL;
-#end if
-#end for
+	mdb_env_close(repo->env);
+	repo->env = NULL;
 }
 
 static int __${pre}nonull(1) __warn_result
 ${pre}open(${type} * repo, int flags)
 {
 	${assert_fn}(repo);
+	${assert_fn}(!repo->env);
+	${assert_fn}(!repo->txn);
 
 	int ret;
-	char *name;
-	size_t len = stroll_lvstr_len(&repo->path) + ${max_path};
+	unsigned int f = flags & O_RDONLY ? MDB_RDONLY : 0;
+	MDB_dbi dbi;
 
-	name = malloc(len * sizeof(char));
-	if (!name)
-		return -ENOMEM;
+	ret = mdb_env_create(&repo->env);
+	if (ret)
+		return ret;
+
+#set $nb = len($entries)
+	ret = mdb_env_set_maxdbs(repo->env, ${nb});
+	if (ret)
+		goto error;
+
+	ret = mdb_env_open(repo->env, stroll_lvstr_cstr(&repo->path), f, repo->mode);
+	if (ret)
+		goto error;
+
+	ret = ${pid}_start(repo);
+	if (ret)
+		goto error;
 #for $e in $entries
 
-	snprintf(name, len, "%s/${e.id}.tdb",
-	         stroll_lvstr_cstr(&repo->path));
-#if $e.type == 'object'
-	${assert_fn}(repo->${e.id} < 0);
-	if (flags & O_CREAT)
-		repo->${e.id} = ufile_new(name, flags | O_CLOEXEC, repo->mode);
-	else
-		repo->${e.id} = ufile_open(name, flags | O_CLOEXEC);
-	if (repo->${e.id} < 0) {
-		ret = repo->${e.id};
+	f = flags & O_CREAT ? MDB_CREATE : 0;
+	ret = mdb_dbi_open(repo->txn, "${e.id}", f, &dbi);
+	if (ret)
 		goto error;
-	}
-#else
 
-	repo->${e.id} = gdbm_open(name, (int)stroll_page_size(),
-		${pre}flags2gdbm(flags) | GDBM_CLOEXEC | GDBM_XVERIFY,
-		(int)repo->mode, NULL);
-	if (!repo->${e.id}) {
-		ret = -EACCES;
-		goto error;
+	if (flags & O_TRUNC) {
+		ret = mdb_drop(repo->txn, dbi, 0);
+		if (ret)
+			goto error;
 	}
-#end if
 #end for
+	
+	return ${pid}_commit(repo);
 
-	free(name);
-	return 0;
 error:
-	free(name);
 	${pre}close(repo);
 	return ret;
 }
@@ -94,15 +73,10 @@ ${pre}open_${id}(${type} * repo, const char * path, int flags, mode_t mode)
 
 	int ret;
 
+	repo->env = NULL;
+	repo->txn = NULL;
 	repo->flags = flags & O_ACCMODE;
 	repo->mode = mode;
-#for $e in $entries
-#if $e.type == 'object'
-	repo->${e.id} = -1;
-#else
-	repo->${e.id} = NULL;
-#end if
-#end for
 	repo->buf = malloc(sizeof(char) * ${pid.upper()}_MAX_PAYLOAD);
 	if (!repo->buf)
 		return -ENOMEM;
@@ -130,31 +104,42 @@ ${pre}close_${id}(${type} * repo)
 	free(repo->buf);
 }
 
+
 int __${pre}nonull(1)
-${pre}sync_${id}(${type} * repo)
+${pid}_start(${type} * repo)
 {
 	${assert_fn}(repo);
+	${assert_fn}(repo->env);
+	${assert_fn}(!repo->txn);
+
+	unsigned int flags = repo->flags & O_RDONLY ? MDB_RDONLY : 0;
+
+	return mdb_txn_begin(repo->env, NULL, flags, &repo->txn);
+}
+
+int __${pre}nonull(1)
+${pid}_commit(${type} * repo)
+{
+	${assert_fn}(repo);
+	${assert_fn}(repo->env);
+	${assert_fn}(repo->txn);
 
 	int ret;
-#for $e in $entries
-#if $e.type == 'object'
 
-	${assert_fn}(repo->${e.id} >= 0);
-	ret = ufile_sync(repo->${e.id});
-	if (ret)
-		return ret;
-#else
+	ret = mdb_txn_commit(repo->txn);
+	repo->txn = NULL;
+	return ret;
+}
 
-	${assert_fn}(repo->${e.id});
-	if (gdbm_reorganize(repo->${e.id}))
-		return -EINVAL;
-
-	if (gdbm_sync(repo->${e.id}))
-		return -EINVAL;
-#end if
-#end for
-
-	return 0;
+void __${pre}nonull(1)
+${pid}_abort(${type} * repo)
+{
+	${assert_fn}(repo);
+	${assert_fn}(repo->env);
+	${assert_fn}(repo->txn);
+	
+	mdb_txn_abort(repo->txn);
+	repo->txn = NULL;
 }
 
 int __${pre}nonull(1)

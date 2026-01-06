@@ -1,16 +1,24 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 #include <json-c/json_util.h>
 #include <test-storage/lib.h>
+#include <stdio.h>
 
 int main(void)
 {
 	struct stk_repo repo;
 	struct json_object *obj;
 	int ret;
+	int val;
 
 	ret = stk_open_repo(&repo, "build", O_RDWR | O_CREAT | O_TRUNC, 0600);
 	if (ret) {
 		printf("open create fail\n");
+		goto exit;
+	}
+
+	ret = stk_repo_start(&repo);
+	if (ret) {
+		printf("start txn fail\n");
 		goto exit;
 	}
 
@@ -33,9 +41,9 @@ int main(void)
 		}
 	}
 
-	ret = stk_sync_repo(&repo);
+	ret = stk_repo_commit(&repo);
 	if (ret) {
-		printf("sync fail\n");
+		printf("commit fail\n");
 		goto exit;
 	}
 
@@ -45,10 +53,34 @@ int main(void)
 		goto exit;
 	}
 
+	ret = stk_repo_start(&repo);
+	if (ret) {
+		printf("start txn fail\n");
+		goto exit;
+	}
+
+	ret = stk_repo_get_test_object(&repo, &val);
+	if (ret) {
+		printf("get object fail\n");
+		goto exit;
+	}
+
+	if (val != 5) {
+		printf("get object return %d != 5\n", val);
+		ret = 1;
+		goto exit;
+	}
+
 	stk_close_repo(&repo);
-	ret = stk_open_repo(&repo, "build", O_RDWR, 0600);
+	ret = stk_open_repo(&repo, "build", O_RDONLY, 0600);
 	if (ret) {
 		printf("open fail\n");
+		goto exit;
+	}
+
+	ret = stk_repo_start(&repo);
+	if (ret) {
+		printf("start txn fail\n");
 		goto exit;
 	}
 

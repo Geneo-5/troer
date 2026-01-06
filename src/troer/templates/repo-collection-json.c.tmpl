@@ -3,26 +3,39 @@ ${parent.pid}_enc_${id}_to_json(${parent.type} *repo)
 {
 	${assert_fn}(repo);
 	${assert_fn}(repo->buf);
+	${assert_fn}(repo->env);
+	${assert_fn}(repo->txn);
 
 	struct dpack_decoder  dec;
 	struct json_object *array;
 	struct json_object *obj;
 	struct json_object *tmp;
-	datum key;
-	datum next;
-	datum content;
+	MDB_dbi dbi;
+	MDB_cursor *cursor;
+	MDB_val idx;
+	MDB_val content;
+	int ret;
+
+	if (mdb_dbi_open(repo->txn, "${id}", 0, &dbi))
+		return NULL;
+
+	if (mdb_cursor_open(repo->txn, dbi, &cursor))
+		return NULL;
 
 	array = json_object_new_array();
 	if (!array)
 		return NULL;
 
-	key = gdbm_firstkey(repo->${id});
-	while(key.dptr) {
+	ret = mdb_cursor_get(cursor, &idx, &content, MDB_FIRST);
+	while(!ret) {
+		${assert_fn}(idx.mv_data);
+		${assert_fn}(content.mv_data);
+
 		obj = json_object_new_object();
 		if (!obj)
-			goto freekey;
+			goto close;
 
-		dpack_decoder_init_buffer(&dec, key.dptr, (size_t)key.dsize);
+		dpack_decoder_init_buffer(&dec, idx.mv_data, idx.mv_size);
 		tmp = ${key.decode}_to_json(&dec);
 		dpack_decoder_fini(&dec);
 		if (!tmp)
@@ -31,30 +44,26 @@ ${parent.pid}_enc_${id}_to_json(${parent.type} *repo)
 		if(json_object_object_add(obj, "key", tmp))
 			goto putobj;
 
-		content = gdbm_fetch(repo->${id}, key);
-		${assert_fn}(content.dptr);
-		dpack_decoder_init_buffer(&dec, content.dptr, (size_t)content.dsize);
+		dpack_decoder_init_buffer(&dec, content.mv_data, content.mv_size);
 		tmp = ${object.decode}_to_json(&dec);
 		dpack_decoder_fini(&dec);
-		free(content.dptr);
 		if (!tmp)
 			goto putobj;
 
 		if(json_object_object_add(obj, "value", tmp))
 			goto putobj;
 
-		next = gdbm_nextkey(repo->${id}, key);
-		free(key.dptr);
-		key = next;
 		if (json_object_array_add(array, obj))
 			goto putobj;
+
+		ret = mdb_cursor_get(cursor, &idx, &content, MDB_NEXT);
 	}
 
 	return array;
 putobj:
 	json_object_put(obj);
-freekey:
-	free(key.dptr);
+close:
+	mdb_cursor_close(cursor);
 	json_object_put(array);
 	return NULL;
 }

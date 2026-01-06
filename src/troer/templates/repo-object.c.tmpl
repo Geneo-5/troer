@@ -2,20 +2,28 @@ int __${pre}nonull(1, 2) __warn_result
 ${parent.pid}_get_${id}(${parent.type} *repo, ${object.type} *value)
 {
 	${assert_fn}(repo);
-	${assert_fn}(value);
 	${assert_fn}(repo->buf);
+	${assert_fn}(repo->env);
+	${assert_fn}(repo->txn);
 
 	struct dpack_decoder  dec;
 	int ret;
-	ssize_t len;
+	MDB_dbi dbi;
+	MDB_val data;
+	MDB_val key = {
+		.mv_size = 1,
+		.mv_data = ".",
+	};
 
-	ufile_lseek(repo->${id}, SEEK_SET, 0);
-	len = ufile_read(repo->${id}, repo->buf,
-	                 ${object.elem.pid.upper()}_PACKED_SIZE_MAX);
-	if (len < 0)
-		return (int)len;
+	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
+	if (ret)
+		return ret;
 
-	dpack_decoder_init_buffer(&dec, (const char *)repo->buf, (size_t)len);
+	ret = mdb_get(repo->txn, dbi, &key, &data);
+	if (ret)
+		return ret;
+
+	dpack_decoder_init_buffer(&dec, data.mv_data, data.mv_size);
 	ret = ${object.decode}(&dec, value);
 	dpack_decoder_fini(&dec);
 	return ret;
@@ -27,12 +35,18 @@ ${parent.pid}_update_${id}(${parent.type} *repo,
                            const ${object.type} ${object.asterisk}value)
 {
 	${assert_fn}(repo);
-	${assert_fn}(value);
 	${assert_fn}(repo->buf);
+	${assert_fn}(repo->env);
+	${assert_fn}(repo->txn);
 
 	struct dpack_encoder enc;
 	int ret;
-	ssize_t len;
+	MDB_dbi dbi;
+	MDB_val data;
+	MDB_val key = {
+		.mv_size = 1,
+		.mv_data = ".",
+	};
 
 	dpack_encoder_init_buffer(&enc, repo->buf,
 	                          ${object.elem.pid.upper()}_PACKED_SIZE_MAX);
@@ -41,13 +55,13 @@ ${parent.pid}_update_${id}(${parent.type} *repo,
 	if (ret)
 		return ret;
 
-	ufile_lseek(repo->${id}, SEEK_SET, 0);
-	len = ufile_write(repo->${id}, repo->buf,
-	                  (size_t)dpack_encoder_space_used(&enc));
-	if (len < 0)
-		return (int)len;
+	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
+	if (ret)
+		return ret;
 
-	return 0;
+	data.mv_data = repo->buf;
+	data.mv_size = (size_t)dpack_encoder_space_used(&enc);
+	return mdb_put(repo->txn, dbi, &key, &data, 0);
 }
 
 ## ex: filetype=c

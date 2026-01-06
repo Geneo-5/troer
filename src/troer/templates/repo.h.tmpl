@@ -3,13 +3,8 @@
 
 ${type} {
 	char                *buf;
-#for $e in $entries
-#if $e.type == 'object'
-	int                  ${e.id};
-#else
-	GDBM_FILE            ${e.id};
-#end if
-#end for
+	MDB_env             *env;
+	MDB_txn             *txn;
 	struct stroll_lvstr  path;
 	int                  flags;
 	mode_t               mode;
@@ -19,13 +14,21 @@ extern int
 ${pre}open_${id}(${type} * repo, const char * path, int flags, mode_t mode)
  __${pre}nonull(1, 2) __warn_result;
 
-extern void
-${pre}close_${id}(${type} * repo)
+extern int
+${pid}_start(${type} * repo)
  __${pre}nonull(1);
 
 extern int
-${pre}sync_${id}(${type} * repo)
- __${pre}nonull(1) __warn_result;
+${pid}_commit(${type} * repo)
+ __${pre}nonull(1);
+
+extern void
+${pid}_abort(${type} * repo)
+ __${pre}nonull(1);
+
+extern void
+${pre}close_${id}(${type} * repo)
+ __${pre}nonull(1);
 
 extern int
 ${pre}reload_${id}(${type} * repo)

@@ -393,12 +393,7 @@ class RepoEntry(Elem):
         super().__init__(lib, yaml)
         self.tmpl  = 'repo-' + yaml['type']
 
-        if yaml['type'] == 'object':
-            lib.header.add("<utils/file.h>")
-        if yaml['type'] == 'collection':
-            parent.flags2gdbm = True
-            lib.header.add("<gdbm.h>")
-            lib.header.add("<stroll/page.h>")
+        lib.header.add("<lmdb.h>")
 
         self.parent = parent
         self.object = RefElem(yaml['object'][1:], lib, yaml)
@@ -409,8 +404,7 @@ class RepoElem(Elem):
     def __init__(self, lib, yaml):
         super().__init__(lib, yaml)
         lib.header.add("<stroll/lvstr.h>")
-        lib.header.add("<stdio.h>")
-        lib.header.add("<string.h>")
+        lib.header.add("<fcntl.h>")
         self.tmpl  = 'repo'
         self.type  = f"struct {self.pid}"
         self.ampersand = '&'

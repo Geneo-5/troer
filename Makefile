@@ -70,8 +70,10 @@ $(subst r,R,$(subst s,S,$(subst t,T,$(subst u,U,$(subst v,V,$(subst w,W,\
 $(subst x,X,$(subst y,Y,$(subst z,Z,$(1))))))))))))))))))))))))))))
 endef
 
-test-%: EXTRA_CFLAGS+=$(call UP,-DCONFIG_TEST_$*_ASSERT)
-test-%: tests/test-%.yaml | $(BUILDDIR)/test-% \
+src := Makefile $(shell find src/ tests/ -type f)
+
+$(BUILDDIR)/test_%: EXTRA_CFLAGS+=$(call UP,-DCONFIG_TEST_$*_ASSERT)
+$(BUILDDIR)/test_%: tests/test-%.yaml $(src) | $(BUILDDIR)/test-% \
 	$(BUILDDIR)/troer-% \
 	$(BUILDDIR)/troer-%-base \
 	$(BUILDDIR)/troer-%-builtin
@@ -96,11 +98,14 @@ test-%: tests/test-%.yaml | $(BUILDDIR)/test-% \
 		$(call pkgconfig, --cflags pcre2-8) \
 		$(EXTRA_LDFLAGS) -l:libdpack.a -l:libstroll.a -l:libjson-c.a \
 		-l:libutils.a -l:libgalv.a -l:libhed.a -letux_timer_heap \
-		-lelog -l:libgdbm.a -l:libtest-$*.a \
+		-lelog -l:liblmdb.a -l:libtest-$*.a \
 		-o $(BUILDDIR)/test_$* \
-		tests/$*.c \
+		tests/$*.c
 
-run-%: test-%
+test-%: $(BUILDDIR)/test_%
+	@:
+
+run-%: $(BUILDDIR)/test_%
 	@$(CURDIR)/scripts/run.sh $*
 
 install: venv dpack stroll utils galv hed elog

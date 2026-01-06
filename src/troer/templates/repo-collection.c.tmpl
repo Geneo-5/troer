@@ -1,10 +1,10 @@
 #set $nonull  = '1'
 #set $nonull += ', 2' if $key.asterisk else ''
 static int __${pre}nonull($nonull) __warn_result
-${parent.pid}_${id}_enc_key(datum *idx, ${key.type} ${key.asterisk}key)
+${parent.pid}_${id}_enc_key(MDB_val *idx, ${key.type} ${key.asterisk}key)
 {
 	${assert_fn}(idx);
-	${assert_fn}(idx->dptr);
+	${assert_fn}(idx->mv_data);
 #if $key.asterisk
 	${assert_fn}(key);
 #end if
@@ -12,14 +12,14 @@ ${parent.pid}_${id}_enc_key(datum *idx, ${key.type} ${key.asterisk}key)
 	int ret;
 	struct dpack_encoder enc;
 
-	dpack_encoder_init_buffer(&enc, idx->dptr,
+	dpack_encoder_init_buffer(&enc, idx->mv_data,
 	                          ${key.elem.pid.upper()}_PACKED_SIZE_MAX);
 	ret = ${key.encode}(&enc, key);
 	dpack_encoder_fini(&enc, DPACK_DONE);
 	if (ret)
 		return ret;
 
-	idx->dsize = (int)dpack_encoder_space_used(&enc);
+	idx->mv_size = (size_t)dpack_encoder_space_used(&enc);
 	return 0;
 }
 
@@ -32,6 +32,9 @@ ${parent.pid}_update_${id}(${parent.type} *repo,
                            const ${object.type} ${object.asterisk}value)
 {
 	${assert_fn}(repo);
+	${assert_fn}(repo->buf);
+	${assert_fn}(repo->env);
+	${assert_fn}(repo->txn);
 #if $key.asterisk
 	${assert_fn}(key);
 #end if
@@ -40,12 +43,13 @@ ${parent.pid}_update_${id}(${parent.type} *repo,
 #end if
 
 	int ret;
-	datum idx;
-	datum content;
+	MDB_val idx;
+	MDB_val content;
+	MDB_dbi dbi;
 	struct dpack_encoder enc;
 	char idx_buf[${key.elem.pid.upper()}_PACKED_SIZE_MAX];
 
-	idx.dptr = idx_buf;
+	idx.mv_data = idx_buf;
 	ret = ${parent.pid}_${id}_enc_key(&idx, key);
 	if (ret)
 		return ret;
@@ -57,11 +61,15 @@ ${parent.pid}_update_${id}(${parent.type} *repo,
 	if (ret)
 		return ret;
 
-	content.dptr = idx_buf;
-	content.dsize = (int)dpack_encoder_space_used(&enc);
-	ret = gdbm_store(repo->${id}, idx, content, GDBM_REPLACE);
+	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
 	if (ret)
-		return -EINVAL;
+		return -ret;
+
+	content.mv_data = repo->buf;
+	content.mv_size = (size_t)dpack_encoder_space_used(&enc);
+	ret = mdb_put(repo->txn, dbi, &idx, &content, 0);
+	if (ret)
+		return -ret;
 
 	return 0;
 }
@@ -73,29 +81,36 @@ ${parent.pid}_get_${id}(${parent.type} *repo,
                         ${object.type} *value)
 {
 	${assert_fn}(repo);
+	${assert_fn}(repo->buf);
+	${assert_fn}(repo->env);
+	${assert_fn}(repo->txn);
 #if $key.asterisk
 	${assert_fn}(key);
 #end if
 	${assert_fn}(value);
 
 	int ret;
-	datum idx;
-	datum content;
+	MDB_val idx;
+	MDB_val content;
+	MDB_dbi dbi;
 	struct dpack_decoder dec;
 
-	idx.dptr = repo->buf;
+	idx.mv_data = repo->buf;
 	ret = ${parent.pid}_${id}_enc_key(&idx, key);
 	if (ret)
 		return ret;
 
-	content = gdbm_fetch(repo->${id}, idx);
-	if (content.dptr == NULL)
-		return -ENOENT;
+	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
+	if (ret)
+		return -ret;
+
+	ret = mdb_get(repo->txn, dbi, &idx, &content);
+	if (ret)
+		return -ret;
 	
-	dpack_decoder_init_buffer(&dec, content.dptr, (size_t)content.dsize);
+	dpack_decoder_init_buffer(&dec, content.mv_data, content.mv_size);
 	ret = ${object.decode}(&dec, value);
 	dpack_decoder_fini(&dec);
-	free(content.dptr);
 	return ret;
 }
 
@@ -105,20 +120,29 @@ ${parent.pid}_del_${id}(${parent.type} *repo,
                            ${key.type} ${key.asterisk}key)
 {
 	${assert_fn}(repo);
+	${assert_fn}(repo->buf);
+	${assert_fn}(repo->env);
+	${assert_fn}(repo->txn);
 #if $key.asterisk
 	${assert_fn}(key);
 #end if
 
 	int ret;
-	datum idx;
+	MDB_val idx;
+	MDB_dbi dbi;
 
-	idx.dptr = repo->buf;
+	idx.mv_data = repo->buf;
 	ret = ${parent.pid}_${id}_enc_key(&idx, key);
 	if (ret)
 		return ret;
 	
-	if (gdbm_delete(repo->${id}, idx))
-		return -ENOENT;
+	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
+	if (ret)
+		return -ret;
+
+	ret = mdb_del(repo->txn, dbi, &idx, NULL);
+	if (ret)
+		return -ret;
 
 	return 0;
 }
@@ -127,29 +151,54 @@ ssize_t __${pre}nonull(1) __warn_result
 ${parent.pid}_${id}_count(${parent.type} *repo)
 {
 	${assert_fn}(repo);
+	${assert_fn}(repo->buf);
+	${assert_fn}(repo->env);
+	${assert_fn}(repo->txn);
 
-	gdbm_count_t cnt;
+	MDB_dbi dbi;
+	MDB_stat stat;
+	ssize_t ret;
 
-	if (gdbm_count(repo->${id}, &cnt))
-		return -EINVAL;
+	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
+	if (ret)
+		return -ret;
 
-	return (ssize_t)cnt;
+	ret = mdb_stat(repo->txn, dbi, &stat);
+	if (ret)
+		return -ret;
+
+	return (ssize_t)stat.ms_entries;
 }
 
 struct ${pid}_iter * __${pre}nonull(1) __warn_result
 ${parent.pid}_${id}_create_iter(${parent.type} *repo)
 {
 	${assert_fn}(repo);
+	${assert_fn}(repo->buf);
+	${assert_fn}(repo->env);
+	${assert_fn}(repo->txn);
 
 	struct ${pid}_iter * iter;
+	MDB_dbi dbi;
+
+	if (mdb_dbi_open(repo->txn, "${id}", 0, &dbi))
+		return NULL;
 
 	iter = malloc(sizeof(*iter));
 	if (!iter)
 		return NULL;
 
 	iter->repo = repo;
-	iter->key = gdbm_firstkey(iter->repo->${id});
+	if (mdb_cursor_open(repo->txn, dbi, &iter->cursor))
+		goto error;
+
+	if (mdb_cursor_get(iter->cursor, NULL, NULL, MDB_FIRST))
+		goto error;
+
 	return iter;
+error:
+	free(iter);
+	return NULL;
 }
 
 int __${pre}nonull(1) __warn_result
@@ -159,17 +208,20 @@ ${parent.pid}_${id}_step(struct ${pid}_iter *iter,
 {
 	${assert_fn}(iter);
 	${assert_fn}(iter->repo);
-	${assert_fn}(iter->repo->buf);
-	${assert_fn}(iter->key.dptr);
+	${assert_fn}(iter->cursor);
 	${assert_fn}(!!key | !!value);
 	
 	struct dpack_decoder  dec;
-	datum content;
-	datum next;
+	MDB_val idx;
+	MDB_val content;
 	int ret;
 
+	ret = mdb_cursor_get(iter->cursor, &idx, &content, MDB_GET_CURRENT);
+	if (ret)
+		return -ret;
+
 	if (key) {
-		dpack_decoder_init_buffer(&dec, iter->key.dptr, (size_t)iter->key.dsize);
+		dpack_decoder_init_buffer(&dec, idx.mv_data, idx.mv_size);
 		ret = ${key.decode}(&dec, key);
 		dpack_decoder_fini(&dec);
 		if (ret)
@@ -177,28 +229,27 @@ ${parent.pid}_${id}_step(struct ${pid}_iter *iter,
 	}
 
 	if (value) {
-		content = gdbm_fetch(iter->repo->${id}, iter->key);
-		${assert_fn}(content.dptr);
-		dpack_decoder_init_buffer(&dec, content.dptr, (size_t)content.dsize);
+		dpack_decoder_init_buffer(&dec, content.mv_data, content.mv_size);
 		ret = ${object.decode}(&dec, value);
 		dpack_decoder_fini(&dec);
-		free(content.dptr);
 		if (ret)
 			return ret;
 	}
 
-	next = gdbm_nextkey(iter->repo->${id}, iter->key);
-	free(iter->key.dptr);
-	iter->key = next;
-	return iter->key.dptr ? EAGAIN : 0;
+	ret = mdb_cursor_get(iter->cursor, NULL, NULL, MDB_NEXT);
+	if (ret)
+		return -ret;
+
+	return 0;
 }
 
 void __${pre}nonull(1)
 ${parent.pid}_${id}_destroy_iter(struct ${pid}_iter *iter)
 {
 	${assert_fn}(iter);
+	${assert_fn}(iter->cursor);
 
-	free(iter->key.dptr);
+	mdb_cursor_close(iter->cursor);
 	free(iter);
 }
 
