@@ -1,12 +1,12 @@
 #for $e in $req
 
 extern int
-${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
-	__${pre}nonull(1) __nothrow __warn_result;
+${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
+	__${pre}nonull(1, 2) __nothrow __warn_result;
 
 extern int
-${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg)
-	__${pre}nonull(1) __nothrow __warn_result;
+${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
+	__${pre}nonull(1, 2) __nothrow __warn_result;
 
 #if 'request' in $e
 #set $nl = '1, 2' if $e.request.asterisk else 1
@@ -58,8 +58,8 @@ ${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
 #for $e in $ntfy
 
 extern int
-${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg)
-	__${pre}nonull(1) __nothrow __warn_result;
+${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
+	__${pre}nonull(1, 2) __nothrow __warn_result;
 #if 'request' in $e
 #set $nl = '1, 2' if $e.request.asterisk else 1
 
@@ -86,8 +86,8 @@ ${e.pre}ntf_${e.id}(struct hed_rpc_conn *conn)
 #for $e in $evnt
 
 extern int
-${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg)
-	__${pre}nonull(1) __nothrow __warn_result;
+${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
+	__${pre}nonull(1, 2) __nothrow __warn_result;
 #if 'request' in $e
 #set $nl = '1, 2' if $e.request.asterisk else 1
 

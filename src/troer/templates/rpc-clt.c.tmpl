@@ -65,8 +65,8 @@ drop:
 	return ret;
 }
 
-int __${pre}nonull(1) __nothrow __warn_result
-${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg)
+int __${pre}nonull(1, 2) __nothrow __warn_result
+${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
 {
 	${assert_fn}(msg);
 	${assert_fn}(msg->id == ${e.pid.upper()});
@@ -75,7 +75,6 @@ ${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg)
 #if 'response' in $e
 	${e.response.type} param;
 #end if
-	struct dpack_decoder decoder;
 	uint32_t status;
 	int ret;
 	void * ctx = hed_rpc_msg_get_ctx(msg);
@@ -86,15 +85,15 @@ ${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg)
 		goto error;
 
 #end if
-	hed_decoder_init(&decoder, msg);
-	ret = dpack_decode_uint32(&decoder, &status);
+	ret = dpack_decode_uint32(decoder, &status);
 #if 'response' in $e
 	if ((!ret) && (!status))
-		ret = ${e.response.decode}(&decoder, &param);
+		ret = ${e.response.decode}(decoder, &param);
 
 #end if
-	hed_decoder_fini(&decoder);
 #set $goto = 'fini' if 'response' in e and 'fini' in $e.response and $e.response.fini else 'error'
+	hed_decoder_fini(decoder);
+	decoder = NULL;
 	if (ret)
 		goto ${goto};
 
@@ -109,6 +108,8 @@ fini:
 	${e.response.fini}(&param);
 #end if
 error:
+	if (decoder)
+		hed_decoder_fini(decoder);
 	hed_rpc_drop_msg(msg);
 	return ret;
 }
@@ -165,8 +166,8 @@ drop:
 }
 
 #set $goto = 'fini' if 'request' in e and 'fini' in $e.request else 'error'
-int __${pre}nonull(1) __nothrow __warn_result
-${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg)
+int __${pre}nonull(1, 2) __nothrow __warn_result
+${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
 {
 	${assert_fn}(msg);
 	${assert_fn}(msg->id == ${e.pid.upper()});
@@ -174,7 +175,6 @@ ${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg)
 
 	struct hed_rpc_conn *conn = hed_msg_get_conn(msg);
 #if 'request' in $e
-	struct dpack_decoder decoder;
 	${e.request.type} param;
 	int ret;
 #if 'init' in $e.request
@@ -183,10 +183,9 @@ ${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg)
 	if (ret)
 		goto error;
 #end if
-	hed_decoder_init(&decoder, msg);
 
-	ret = ${e.request.decode}(&decoder, &param);
-	hed_decoder_fini(&decoder);
+	ret = ${e.request.decode}(decoder, &param);
+	hed_decoder_fini(decoder);
 	if (ret)
 		goto ${goto};
 
@@ -206,6 +205,7 @@ error:
 	return ret;
 #else
 
+	hed_decoder_fini(decoder);
 	hed_rpc_drop_msg(msg);
 	return ${e.pre}clt_${e.id}(conn);
 #end if
