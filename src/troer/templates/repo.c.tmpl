@@ -1,208 +1,115 @@
-static void __${pre}nonull(1)
-${pre}close(${type} * repo)
-{
-	${assert_fn}(repo);
-
-	if (!repo->env)
-		return;
-
-	if (repo->txn)
-		${pid}_abort(repo);
-
-	mdb_env_close(repo->env);
-	repo->env = NULL;
-}
+static const char * const ${pre}table[] = {
+#for $e in $entries
+	"${e.name}",
+#end for
+};
+#set $version = str($lib.version)
+#set $vlen = len($version)
 
 static int __${pre}nonull(1) __warn_result
-${pre}open(${type} * repo, int flags)
+${pre}check_${id}_version(struct hed_repo * repo)
 {
 	${assert_fn}(repo);
-	${assert_fn}(!repo->env);
-	${assert_fn}(!repo->txn);
 
 	int ret;
-	unsigned int f = flags & O_RDONLY ? MDB_RDONLY : 0;
-	MDB_dbi dbi;
+	uint8_t *version;
+	size_t len;
 
-	ret = mdb_env_create(&repo->env);
+	ret = hed_repo_start(repo);
 	if (ret)
 		return ret;
 
-#set $nb = len($entries)
-	ret = mdb_env_set_maxdbs(repo->env, ${nb});
+	ret = hed_repo_get_version(repo, &version, &len);
 	if (ret)
-		goto error;
+		goto end;
 
-	ret = mdb_env_open(repo->env, stroll_lvstr_cstr(&repo->path),
-			   f | MDB_NOSUBDIR, repo->mode);
-	if (ret)
-		goto error;
+	if (len != ${vlen}) {
+		ret = -EINVAL;
+		goto end;
 
-	ret = ${pid}_start(repo);
-	if (ret)
-		goto error;
-#for $e in $entries
-
-	f = flags & O_CREAT ? MDB_CREATE : 0;
-	ret = mdb_dbi_open(repo->txn, "${e.id}", f, &dbi);
-	if (ret)
-		goto error;
-
-	if (flags & O_TRUNC) {
-		ret = mdb_drop(repo->txn, dbi, 0);
-		if (ret)
-			goto error;
 	}
-#end for
-	
-	return ${pid}_commit(repo);
 
-error:
-	${pre}close(repo);
+	if (memcmp(version, "${version}", ${vlen}))
+		ret = -EINVAL;
+end:
+	hed_repo_abort(repo);
 	return ret;
 }
 
 int __${pre}nonull(1, 2) __warn_result
-${pre}open_${id}(${type} * repo, const char * path, int flags, mode_t mode)
+${pre}open_${id}(struct hed_repo * repo, const char * path,
+                 int flags, mode_t mode)
 {
 	${assert_fn}(repo);
 	${assert_fn}(path);
-	${assert_fn}(strlen(path) > 0);
-	${assert_fn}(!(flags & (~(O_RDWR | O_RDONLY | O_CREAT | O_TRUNC))));
-	${assert_fn}(!(flags & O_CREAT) | (flags & O_RDWR));
-	${assert_fn}(!(flags & O_TRUNC) | (flags & O_CREAT));
 
 	int ret;
-	char *backup;
 
-	repo->env = NULL;
-	repo->txn = NULL;
-	repo->flags = flags & O_ACCMODE;
-	repo->mode = mode;
-	repo->buf = malloc(sizeof(char) * ${pid.upper()}_MAX_PAYLOAD);
-	if (!repo->buf)
-		return -ENOMEM;
-
-	backup = malloc((strlen(path) + 8) * sizeof(char));
-	if (!backup) {
-		ret = -ENOMEM;
-		goto free_buf;
-	}
-
-	snprintf(backup, (strlen(path) + 8), "%s-backup", path);
-	ret = stroll_lvstr_init_cede(&repo->backup, backup);
+	ret = hed_repo_open(repo, path, ${pre}table,
+	                    stroll_array_nr(${pre}table),
+	                    flags, mode);
 	if (ret)
-	{
-		free(backup);
-		goto free_buf;
-	}
+		return ret;
 
-	ret = stroll_lvstr_init_dup(&repo->path, path);
-	if (ret)
-		goto free_backup;
+	if (flags & O_TRUNC) {
+		ret = hed_repo_start(repo);
+		if (ret)
+			goto error;
+
+		ret = hed_repo_set_version(repo, (const uint8_t *)"${version}", ${vlen});
+		if (ret)
+			goto error;
+
+		ret = hed_repo_commit(repo);
+		if (ret)
+			goto error;
+	} else {
+		ret = ${pre}check_${id}_version(repo);
+		if (ret)
+			goto error;
+	}
 	
-	ret = ${pre}open(repo, flags);
-	if (ret)
-		goto free_path;
-
 	return 0;
 
-free_path:
-	stroll_lvstr_fini(&repo->path);
-free_backup:
-	stroll_lvstr_fini(&repo->backup);
-free_buf:
-	free(repo->buf);
-	repo->buf = NULL;
+error:
+	hed_repo_close(repo);
 	return ret;
 }
 
-void __${pre}nonull(1)
-${pre}close_${id}(${type} * repo)
-{
-	if (!repo->buf)
-		return;
-
-	${pre}close(repo);
-	stroll_lvstr_fini(&repo->path);
-	stroll_lvstr_fini(&repo->backup);
-	free(repo->buf);
-	repo->buf = NULL;
-}
-
-
-int __${pre}nonull(1)
-${pid}_start(${type} * repo)
+extern int __${pre}nonull(1) __warn_result
+${pre}reload_${id}(struct hed_repo * repo)
 {
 	${assert_fn}(repo);
-	${assert_fn}(repo->env);
-	${assert_fn}(!repo->txn);
-
-	int fd;
-	int ret;
-	unsigned int flags = repo->flags & O_RDONLY ? MDB_RDONLY : 0;
-
-	if (!flags) {
-		fd = ufile_new(stroll_lvstr_cstr(&repo->backup),
-			O_RDWR | O_TRUNC | O_CLOEXEC, repo->mode);
-		if (fd < 0)
-			return fd;
-
-		ret = mdb_env_copyfd(repo->env, fd);
-		ufile_close(fd);
-		if (ret)
-			return ret;
-	}
-
-	return mdb_txn_begin(repo->env, NULL, flags, &repo->txn);
-}
-
-int __${pre}nonull(1)
-${pid}_commit(${type} * repo)
-{
-	${assert_fn}(repo);
-	${assert_fn}(repo->env);
-	${assert_fn}(repo->txn);
 
 	int ret;
 
-	ret = mdb_txn_commit(repo->txn);
-	repo->txn = NULL;
-	return ret;
-}
+	ret =  hed_repo_reload(repo);
+	if (ret)
+		return ret;
 
-void __${pre}nonull(1)
-${pid}_abort(${type} * repo)
-{
-	${assert_fn}(repo);
-	${assert_fn}(repo->env);
-	${assert_fn}(repo->txn);
+	ret = ${pre}check_${id}_version(repo);
+	if (ret)
+		${pre}close_${id}(repo);
 	
-	mdb_txn_abort(repo->txn);
-	repo->txn = NULL;
+	return ret;
 }
 
-int __${pre}nonull(1)
-${pre}reload_${id}(${type} * repo)
+extern int __${pre}nonull(1) __warn_result
+${pre}rollback_${id}(struct hed_repo * repo)
 {
 	${assert_fn}(repo);
-	${assert_fn}(repo->env);
-	${assert_fn}(!repo->txn);
 
-	${pre}close(repo);
-	return ${pre}open(repo, repo->flags);
-}
+	int ret;
 
-int __${pre}nonull(1)
-${pre}rollback_${id}(${type} * repo)
-{
-	${assert_fn}(repo);
-	${assert_fn}(repo->env);
-	${assert_fn}(!repo->txn);
+	ret =  hed_repo_rollback(repo);
+	if (ret)
+		return ret;
 
-	${pre}close(repo);
-	rename(stroll_lvstr_cstr(&repo->backup), stroll_lvstr_cstr(&repo->path));
-	return ${pre}open(repo, repo->flags);
+	ret = ${pre}check_${id}_version(repo);
+	if (ret)
+		${pre}close_${id}(repo);
+	
+	return ret;
 }
 
 #for $e in $entries

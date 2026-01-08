@@ -1,29 +1,21 @@
 int __${pre}nonull(1, 2) __warn_result
-${parent.pid}_get_${id}(${parent.type} *repo, ${object.type} *value)
+${parent.pid}_get_${id}(struct hed_repo *repo, ${object.type} *value)
 {
 	${assert_fn}(repo);
-	${assert_fn}(repo->buf);
-	${assert_fn}(repo->env);
-	${assert_fn}(repo->txn);
+	${assert_fn}(value);
 
 	struct dpack_decoder  dec;
 	int ret;
-	MDB_dbi dbi;
-	MDB_val data;
-	MDB_val key = {
-		.mv_size = 1,
-		.mv_data = ".",
-	};
+	uint8_t * data;
+	size_t len;
 
-	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
+	ret = hed_repo_get(repo, "${name}",
+	                   (const uint8_t *)".", 1,
+	                   &data, &len);
 	if (ret)
 		return ret;
 
-	ret = mdb_get(repo->txn, dbi, &key, &data);
-	if (ret)
-		return ret;
-
-	dpack_decoder_init_buffer(&dec, data.mv_data, data.mv_size);
+	dpack_decoder_init_buffer(&dec, (const char *)data, len);
 	ret = ${object.decode}(&dec, value);
 	dpack_decoder_fini(&dec);
 	return ret;
@@ -31,37 +23,28 @@ ${parent.pid}_get_${id}(${parent.type} *repo, ${object.type} *value)
 
 #set $nonull = '1, 2' if $object.asterisk else '1'
 int __${pre}nonull($nonull) __warn_result
-${parent.pid}_update_${id}(${parent.type} *repo,
+${parent.pid}_update_${id}(struct hed_repo *repo,
                            const ${object.type} ${object.asterisk}value)
 {
 	${assert_fn}(repo);
-	${assert_fn}(repo->buf);
-	${assert_fn}(repo->env);
-	${assert_fn}(repo->txn);
+#if $object.asterisk
+	${assert_fn}(value);
+#end if
 
 	struct dpack_encoder enc;
 	int ret;
-	MDB_dbi dbi;
-	MDB_val data;
-	MDB_val key = {
-		.mv_size = 1,
-		.mv_data = ".",
-	};
+	uint8_t data[${object.elem.pid.upper()}_PACKED_SIZE_MAX];
 
-	dpack_encoder_init_buffer(&enc, repo->buf,
+	dpack_encoder_init_buffer(&enc, (char *)data,
 	                          ${object.elem.pid.upper()}_PACKED_SIZE_MAX);
 	ret = ${object.encode}(&enc, value);
 	dpack_encoder_fini(&enc, DPACK_DONE);
 	if (ret)
 		return ret;
 
-	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
-	if (ret)
-		return ret;
-
-	data.mv_data = repo->buf;
-	data.mv_size = (size_t)dpack_encoder_space_used(&enc);
-	return mdb_put(repo->txn, dbi, &key, &data, 0);
+	return hed_repo_update(repo, "${name}",
+	                       (const uint8_t *)".", 1,
+	                       data, (size_t)dpack_encoder_space_used(&enc));
 }
 
 ## ex: filetype=c

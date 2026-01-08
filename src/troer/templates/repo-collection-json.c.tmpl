@@ -1,41 +1,37 @@
 struct json_object * __${pre}nonull(1) __warn_result
-${parent.pid}_enc_${id}_to_json(${parent.type} *repo)
+${parent.pid}_enc_${id}_to_json(struct hed_repo *repo)
 {
 	${assert_fn}(repo);
-	${assert_fn}(repo->buf);
-	${assert_fn}(repo->env);
-	${assert_fn}(repo->txn);
 
 	struct dpack_decoder  dec;
 	struct json_object *array;
 	struct json_object *obj;
 	struct json_object *tmp;
-	MDB_dbi dbi;
-	MDB_cursor *cursor;
-	MDB_val idx;
-	MDB_val content;
+	struct hed_repo_iter * iter;
 	int ret;
-
-	if (mdb_dbi_open(repo->txn, "${id}", 0, &dbi))
-		return NULL;
-
-	if (mdb_cursor_open(repo->txn, dbi, &cursor))
-		return NULL;
+	size_t klen;
+	size_t vlen;
+	uint8_t * kdata;
+	uint8_t * vdata;
 
 	array = json_object_new_array();
 	if (!array)
 		return NULL;
 
-	ret = mdb_cursor_get(cursor, &idx, &content, MDB_FIRST);
-	while(!ret) {
-		${assert_fn}(idx.mv_data);
-		${assert_fn}(content.mv_data);
+	iter = ${parent.pid}_${id}_create_iter(repo);
+	if (!iter)
+		goto putarray;
+
+	do {
+		ret = hed_repo_step(iter, &kdata, &klen, &vdata, &vlen);
+		if (ret < 0)
+			goto close;
 
 		obj = json_object_new_object();
 		if (!obj)
 			goto close;
 
-		dpack_decoder_init_buffer(&dec, idx.mv_data, idx.mv_size);
+		dpack_decoder_init_buffer(&dec, (const char *)kdata, klen);
 		tmp = ${key.decode}_to_json(&dec);
 		dpack_decoder_fini(&dec);
 		if (!tmp)
@@ -44,7 +40,7 @@ ${parent.pid}_enc_${id}_to_json(${parent.type} *repo)
 		if(json_object_object_add(obj, "key", tmp))
 			goto putobj;
 
-		dpack_decoder_init_buffer(&dec, content.mv_data, content.mv_size);
+		dpack_decoder_init_buffer(&dec, (const char *)vdata, vlen);
 		tmp = ${object.decode}_to_json(&dec);
 		dpack_decoder_fini(&dec);
 		if (!tmp)
@@ -56,14 +52,14 @@ ${parent.pid}_enc_${id}_to_json(${parent.type} *repo)
 		if (json_object_array_add(array, obj))
 			goto putobj;
 
-		ret = mdb_cursor_get(cursor, &idx, &content, MDB_NEXT);
-	}
+	} while (ret == EAGAIN);
 
 	return array;
 putobj:
 	json_object_put(obj);
 close:
-	mdb_cursor_close(cursor);
+	${parent.pid}_${id}_destroy_iter(iter);
+putarray:
 	json_object_put(array);
 	return NULL;
 }

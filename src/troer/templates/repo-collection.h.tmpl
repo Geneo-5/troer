@@ -1,12 +1,7 @@
-struct ${pid}_iter {
-	${parent.type} *repo;
-	MDB_cursor *cursor;
-};
-
 #set $nonull = '1, 2, 3' if $key.asterisk else '1, 2'
 extern int
-${parent.pid}_get_${id}(${parent.type} *repo,
-                        ${key.type} ${key.asterisk}key,
+${parent.pid}_get_${id}(struct hed_repo *repo,
+                        const ${key.type} ${key.asterisk}key,
                         ${object.type} *value)
 	__${pre}nonull($nonull) __warn_result;
 
@@ -14,38 +9,50 @@ ${parent.pid}_get_${id}(${parent.type} *repo,
 #set $nonull += ', 2' if $key.asterisk else ''
 #set $nonull += ', 2' if $object.asterisk else ''
 extern int
-${parent.pid}_update_${id}(${parent.type} *repo,
-                           ${key.type} ${key.asterisk}key,
+${parent.pid}_update_${id}(struct hed_repo *repo,
+                           const ${key.type} ${key.asterisk}key,
                            const ${object.type} ${object.asterisk}value)
 	__${pre}nonull($nonull) __warn_result;
 
 #set $nonull = '1, 2' if $key.asterisk else '1'
 extern int
-${parent.pid}_del_${id}(${parent.type} *repo,
-                           ${key.type} ${key.asterisk}key)
+${parent.pid}_del_${id}(struct hed_repo *repo,
+                           const ${key.type} ${key.asterisk}key)
 	__${pre}nonull($nonull) __warn_result;
 
-extern ssize_t
-${parent.pid}_${id}_count(${parent.type} *repo)
-	__${pre}nonull(1) __warn_result;
+static inline ssize_t __${pre}nonull(1) __warn_result
+${parent.pid}_${id}_count(struct hed_repo *repo)
+{
+	${assert_fn}(repo);
 
-extern struct ${pid}_iter *
-${parent.pid}_${id}_create_iter(${parent.type} *repo)
-	__${pre}nonull(1) __warn_result;
+	return hed_repo_count(repo, "${name}");
+}
+
+static inline struct hed_repo_iter * __${pre}nonull(1) __warn_result
+${parent.pid}_${id}_create_iter(struct hed_repo *repo)
+{
+	${assert_fn}(repo);
+
+	return hed_repo_create_iter(repo, "${name}");
+}
 
 extern int
-${parent.pid}_${id}_step(struct ${pid}_iter *iter,
+${parent.pid}_${id}_step(struct hed_repo_iter *iter,
                          ${key.type} *key,
                          ${object.type} *value)
 	__${pre}nonull(1) __warn_result;
 
-extern void
-${parent.pid}_${id}_destroy_iter(struct ${pid}_iter *iter)
-	__${pre}nonull(1);
+static inline void __${pre}nonull(1)
+${parent.pid}_${id}_destroy_iter(struct hed_repo_iter *iter)
+{
+	${assert_fn}(repo);
+
+	hed_repo_destroy_iter(iter);
+}
 
 #if $json
 extern struct json_object *
-${parent.pid}_enc_${id}_to_json(${parent.type} *repo)
+${parent.pid}_enc_${id}_to_json(struct hed_repo *repo)
 	__${pre}nonull(1) __warn_result;
 #end if
 ## ex: filetype=c

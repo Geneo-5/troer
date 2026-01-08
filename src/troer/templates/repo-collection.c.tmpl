@@ -1,10 +1,9 @@
 #set $nonull  = '1'
 #set $nonull += ', 2' if $key.asterisk else ''
-static int __${pre}nonull($nonull) __warn_result
-${parent.pid}_${id}_enc_key(MDB_val *idx, ${key.type} ${key.asterisk}key)
+static ssize_t __${pre}nonull($nonull) __warn_result
+${parent.pid}_${id}_enc_key(uint8_t *data, const ${key.type} ${key.asterisk}key)
 {
-	${assert_fn}(idx);
-	${assert_fn}(idx->mv_data);
+	${assert_fn}(data);
 #if $key.asterisk
 	${assert_fn}(key);
 #end if
@@ -12,23 +11,22 @@ ${parent.pid}_${id}_enc_key(MDB_val *idx, ${key.type} ${key.asterisk}key)
 	int ret;
 	struct dpack_encoder enc;
 
-	dpack_encoder_init_buffer(&enc, idx->mv_data,
+	dpack_encoder_init_buffer(&enc, (char *)data,
 	                          ${key.elem.pid.upper()}_PACKED_SIZE_MAX);
 	ret = ${key.encode}(&enc, key);
 	dpack_encoder_fini(&enc, DPACK_DONE);
-	if (ret)
+	if (ret < 0)
 		return ret;
 
-	idx->mv_size = (size_t)dpack_encoder_space_used(&enc);
-	return 0;
+	return (ssize_t)dpack_encoder_space_used(&enc);
 }
 
 #set $nonull  = '1'
 #set $nonull += ', 2' if $key.asterisk else ''
 #set $nonull += ', 2' if $object.asterisk else ''
 int __${pre}nonull($nonull) __warn_result
-${parent.pid}_update_${id}(${parent.type} *repo,
-                           ${key.type} ${key.asterisk}key,
+${parent.pid}_update_${id}(struct hed_repo *repo,
+                           const ${key.type} ${key.asterisk}key,
                            const ${object.type} ${object.asterisk}value)
 {
 	${assert_fn}(repo);
@@ -43,41 +41,31 @@ ${parent.pid}_update_${id}(${parent.type} *repo,
 #end if
 
 	int ret;
-	MDB_val idx;
-	MDB_val content;
-	MDB_dbi dbi;
 	struct dpack_encoder enc;
-	char idx_buf[${key.elem.pid.upper()}_PACKED_SIZE_MAX];
+	ssize_t klen;
+	uint8_t key_data[${key.elem.pid.upper()}_PACKED_SIZE_MAX];
+	uint8_t value_data[${object.elem.pid.upper()}_PACKED_SIZE_MAX];
 
-	idx.mv_data = idx_buf;
-	ret = ${parent.pid}_${id}_enc_key(&idx, key);
-	if (ret)
-		return ret;
+	klen = ${parent.pid}_${id}_enc_key(key_data, key);
+	if (klen < 0)
+		return (int)klen;
 
-	dpack_encoder_init_buffer(&enc, repo->buf,
+	dpack_encoder_init_buffer(&enc, (char *)value_data,
 	                          ${object.elem.pid.upper()}_PACKED_SIZE_MAX);
 	ret = ${object.encode}(&enc, value);
 	dpack_encoder_fini(&enc, DPACK_DONE);
 	if (ret)
 		return ret;
 
-	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
-	if (ret)
-		return -ret;
-
-	content.mv_data = repo->buf;
-	content.mv_size = (size_t)dpack_encoder_space_used(&enc);
-	ret = mdb_put(repo->txn, dbi, &idx, &content, 0);
-	if (ret)
-		return -ret;
-
-	return 0;
+	return hed_repo_update(repo, "${name}",
+	                       key_data, (size_t)klen, value_data,
+	                       (size_t)dpack_encoder_space_used(&enc));
 }
 
 #set $nonull = '1, 2, 3' if $key.asterisk else '1, 2'
 int __${pre}nonull($nonull) __warn_result
-${parent.pid}_get_${id}(${parent.type} *repo,
-                        ${key.type} ${key.asterisk}key,
+${parent.pid}_get_${id}(struct hed_repo *repo,
+                        const ${key.type} ${key.asterisk}key,
                         ${object.type} *value)
 {
 	${assert_fn}(repo);
@@ -90,25 +78,22 @@ ${parent.pid}_get_${id}(${parent.type} *repo,
 	${assert_fn}(value);
 
 	int ret;
-	MDB_val idx;
-	MDB_val content;
-	MDB_dbi dbi;
 	struct dpack_decoder dec;
+	ssize_t klen;
+	size_t len;
+	uint8_t * data;
+	uint8_t key_data[${key.elem.pid.upper()}_PACKED_SIZE_MAX];
 
-	idx.mv_data = repo->buf;
-	ret = ${parent.pid}_${id}_enc_key(&idx, key);
+	klen = ${parent.pid}_${id}_enc_key(key_data, key);
+	if (klen < 0)
+		return (int)klen;
+
+	ret = hed_repo_get(repo, "${name}",
+	                   key_data, (size_t)klen, &data, &len);
 	if (ret)
 		return ret;
 
-	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
-	if (ret)
-		return -ret;
-
-	ret = mdb_get(repo->txn, dbi, &idx, &content);
-	if (ret)
-		return -ret;
-	
-	dpack_decoder_init_buffer(&dec, content.mv_data, content.mv_size);
+	dpack_decoder_init_buffer(&dec, (const char *)data, len);
 	ret = ${object.decode}(&dec, value);
 	dpack_decoder_fini(&dec);
 	return ret;
@@ -116,8 +101,8 @@ ${parent.pid}_get_${id}(${parent.type} *repo,
 
 #set $nonull = '1, 2' if $key.asterisk else '1'
 int __${pre}nonull($nonull) __warn_result
-${parent.pid}_del_${id}(${parent.type} *repo,
-                           ${key.type} ${key.asterisk}key)
+${parent.pid}_del_${id}(struct hed_repo *repo,
+                        const ${key.type} ${key.asterisk}key)
 {
 	${assert_fn}(repo);
 	${assert_fn}(repo->buf);
@@ -127,82 +112,19 @@ ${parent.pid}_del_${id}(${parent.type} *repo,
 	${assert_fn}(key);
 #end if
 
-	int ret;
-	MDB_val idx;
-	MDB_dbi dbi;
+	ssize_t klen;
+	uint8_t key_data[${key.elem.pid.upper()}_PACKED_SIZE_MAX];
 
-	idx.mv_data = repo->buf;
-	ret = ${parent.pid}_${id}_enc_key(&idx, key);
-	if (ret)
-		return ret;
-	
-	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
-	if (ret)
-		return -ret;
+	klen = ${parent.pid}_${id}_enc_key(key_data, key);
+	if (klen < 0)
+		return (int)klen;
 
-	ret = mdb_del(repo->txn, dbi, &idx, NULL);
-	if (ret)
-		return -ret;
-
-	return 0;
+	return hed_repo_del(repo, "${name}", key_data, (size_t)klen);
 }
 
-ssize_t __${pre}nonull(1) __warn_result
-${parent.pid}_${id}_count(${parent.type} *repo)
-{
-	${assert_fn}(repo);
-	${assert_fn}(repo->buf);
-	${assert_fn}(repo->env);
-	${assert_fn}(repo->txn);
-
-	MDB_dbi dbi;
-	MDB_stat stat;
-	ssize_t ret;
-
-	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
-	if (ret)
-		return -ret;
-
-	ret = mdb_stat(repo->txn, dbi, &stat);
-	if (ret)
-		return -ret;
-
-	return (ssize_t)stat.ms_entries;
-}
-
-struct ${pid}_iter * __${pre}nonull(1) __warn_result
-${parent.pid}_${id}_create_iter(${parent.type} *repo)
-{
-	${assert_fn}(repo);
-	${assert_fn}(repo->buf);
-	${assert_fn}(repo->env);
-	${assert_fn}(repo->txn);
-
-	struct ${pid}_iter * iter;
-	MDB_dbi dbi;
-
-	if (mdb_dbi_open(repo->txn, "${id}", 0, &dbi))
-		return NULL;
-
-	iter = malloc(sizeof(*iter));
-	if (!iter)
-		return NULL;
-
-	iter->repo = repo;
-	if (mdb_cursor_open(repo->txn, dbi, &iter->cursor))
-		goto error;
-
-	if (mdb_cursor_get(iter->cursor, NULL, NULL, MDB_FIRST))
-		goto error;
-
-	return iter;
-error:
-	free(iter);
-	return NULL;
-}
 
 int __${pre}nonull(1) __warn_result
-${parent.pid}_${id}_step(struct ${pid}_iter *iter,
+${parent.pid}_${id}_step(struct hed_repo_iter *iter,
                          ${key.type} *key,
                          ${object.type} *value)
 {
@@ -212,45 +134,35 @@ ${parent.pid}_${id}_step(struct ${pid}_iter *iter,
 	${assert_fn}(!!key | !!value);
 	
 	struct dpack_decoder  dec;
-	MDB_val idx;
-	MDB_val content;
+	int err;
 	int ret;
+	size_t klen;
+	size_t vlen;
+	uint8_t * kdata;
+	uint8_t * vdata;
 
-	ret = mdb_cursor_get(iter->cursor, &idx, &content, MDB_GET_CURRENT);
-	if (ret)
-		return -ret;
+
+	ret = hed_repo_step(iter, &kdata, &klen, &vdata, &vlen);
+	if (ret < 0)
+		return ret;
 
 	if (key) {
-		dpack_decoder_init_buffer(&dec, idx.mv_data, idx.mv_size);
-		ret = ${key.decode}(&dec, key);
+		dpack_decoder_init_buffer(&dec, (const char *)kdata, klen);
+		err = ${key.decode}(&dec, key);
 		dpack_decoder_fini(&dec);
-		if (ret)
-			return ret;
+		if (err)
+			return err;
 	}
 
 	if (value) {
-		dpack_decoder_init_buffer(&dec, content.mv_data, content.mv_size);
-		ret = ${object.decode}(&dec, value);
+		dpack_decoder_init_buffer(&dec, (const char *)vdata, vlen);
+		err = ${object.decode}(&dec, value);
 		dpack_decoder_fini(&dec);
-		if (ret)
-			return ret;
+		if (err)
+			return err;
 	}
 
-	ret = mdb_cursor_get(iter->cursor, NULL, NULL, MDB_NEXT);
-	if (ret)
-		return -ret;
-
-	return 0;
-}
-
-void __${pre}nonull(1)
-${parent.pid}_${id}_destroy_iter(struct ${pid}_iter *iter)
-{
-	${assert_fn}(iter);
-	${assert_fn}(iter->cursor);
-
-	mdb_cursor_close(iter->cursor);
-	free(iter);
+	return ret;
 }
 
 ## ex: filetype=c

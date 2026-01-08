@@ -1,16 +1,16 @@
 extern int
-${parent.pid}_get_${id}(${parent.type} *repo, ${object.type} *value)
+${parent.pid}_get_${id}(struct hed_repo *repo, ${object.type} *value)
 	__${pre}nonull(1, 2) __warn_result;
 
 #set $nonull = '1, 2' if $object.asterisk else '1'
 extern int
-${parent.pid}_update_${id}(${parent.type} *repo,
+${parent.pid}_update_${id}(struct hed_repo *repo,
                            const ${object.type} ${object.asterisk}value)
 	__${pre}nonull($nonull) __warn_result;
 
 #if $json
 extern struct json_object *
-${parent.pid}_enc_${id}_to_json(${parent.type} *repo)
+${parent.pid}_enc_${id}_to_json(struct hed_repo *repo)
 	__${pre}nonull(1) __warn_result;
 #end if
 ## ex: filetype=c

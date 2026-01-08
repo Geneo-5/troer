@@ -1,47 +1,50 @@
-
-#define ${pid.upper()}_MAX_PAYLOAD $getMaxSize()
-
-${type} {
-	char                *buf;
-	MDB_env             *env;
-	MDB_txn             *txn;
-	struct stroll_lvstr  path;
-	struct stroll_lvstr  backup;
-	int                  flags;
-	mode_t               mode;
-};
-
 extern int
-${pre}open_${id}(${type} * repo, const char * path, int flags, mode_t mode)
+${pre}open_${id}(struct hed_repo * repo, const char * path, int flags, mode_t mode)
  __${pre}nonull(1, 2) __warn_result;
 
-extern int
-${pid}_start(${type} * repo)
- __${pre}nonull(1);
+static inline int __${pre}nonull(1) __warn_result
+${pid}_start(struct hed_repo * repo)
+{
+	${assert_fn}(repo);
+
+	return hed_repo_start(repo);
+}
+
+static inline inline int __${pre}nonull(1) __warn_result
+${pid}_commit(struct hed_repo * repo)
+{
+	${assert_fn}(repo);
+
+	return hed_repo_commit(repo);
+}
+
+static inline void __${pre}nonull(1)
+${pid}_abort(struct hed_repo * repo)
+{
+	${assert_fn}(repo);
+
+	hed_repo_abort(repo);
+}
+
+static inline void __${pre}nonull(1)
+${pre}close_${id}(struct hed_repo * repo)
+{
+	${assert_fn}(repo);
+
+	hed_repo_close(repo);
+}
 
 extern int
-${pid}_commit(${type} * repo)
- __${pre}nonull(1);
-
-extern void
-${pid}_abort(${type} * repo)
- __${pre}nonull(1);
-
-extern void
-${pre}close_${id}(${type} * repo)
- __${pre}nonull(1);
-
-extern int
-${pre}reload_${id}(${type} * repo)
+${pre}reload_${id}(struct hed_repo * repo)
  __${pre}nonull(1) __warn_result;
 
 extern int
-${pre}rollback_${id}(${type} * repo)
- __${pre}nonull(1) __warn_result;
+${pre}rollback_${id}(struct hed_repo * repo)
+__${pre}nonull(1) __warn_result;
 #if $json
 
 extern struct json_object *
-${pid}_to_json(${type} * repo)
+${pid}_to_json(struct hed_repo * repo)
  __${pre}nonull(1) __warn_result;
 #end if
 

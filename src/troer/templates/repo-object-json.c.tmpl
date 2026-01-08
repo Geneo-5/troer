@@ -1,30 +1,20 @@
 struct json_object * __${pre}nonull(1) __warn_result
-${parent.pid}_enc_${id}_to_json(${parent.type} *repo)
+${parent.pid}_enc_${id}_to_json(struct hed_repo *repo)
 {
 	${assert_fn}(repo);
-	${assert_fn}(repo->buf);
-	${assert_fn}(repo->env);
-	${assert_fn}(repo->txn);
 
 	struct dpack_decoder  dec;
 	struct json_object *obj;
+	uint8_t * data;
+	size_t len;
 	int ret;
-	MDB_dbi dbi;
-	MDB_val data;
-	MDB_val key = {
-		.mv_size = 1,
-		.mv_data = ".",
-	};
 
-	ret = mdb_dbi_open(repo->txn, "${id}", 0, &dbi);
+	ret = hed_repo_get(repo, "${name}",
+	                   (const uint8_t *)".", 1, &data, &len);
 	if (ret)
 		return NULL;
 
-	ret = mdb_get(repo->txn, dbi, &key, &data);
-	if (ret)
-		return NULL;
-
-	dpack_decoder_init_buffer(&dec, data.mv_data, data.mv_size);
+	dpack_decoder_init_buffer(&dec, (const char *)data, len);
 	obj = ${object.decode}_to_json(&dec);
 	dpack_decoder_fini(&dec);
 	return obj;

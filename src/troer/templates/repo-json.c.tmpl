@@ -1,5 +1,5 @@
 struct json_object * __${pre}nonull(1) __warn_result
-${pid}_to_json(${type} * repo)
+${pid}_to_json(struct hed_repo * repo)
 {
 	${assert_fn}(repo);
 
@@ -16,7 +16,7 @@ ${pid}_to_json(${type} * repo)
 	if (!tmp)
 		goto error;
 
-	ret = json_object_object_add(object, "${e.id}", tmp);
+	ret = json_object_object_add(object, "${e.name}", tmp);
 	if (ret)
 		goto error;
 #end for
