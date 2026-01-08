@@ -68,17 +68,18 @@ class Renderer():
         raise Exception(f"Unimplemented function")
 
     def formatMaxSize(self, r, s, end = ')'):
+        r = list(r)
+        r.sort()
         while len(r) > 1:
-            R = set()
+            R = []
             while len(r) > 1:
-                r1 = r.pop()
-                r2 = r.pop()
-                R.add(f'STROLL_CONST_MAX( {r1}, {r2})')
+                r1, r2, r = r[0], r[1], r[2:]
+                R.append(f'STROLL_CONST_MAX( {r1}, {r2})')
             if r:
-                R.add(r.pop())
+                R.append(r[0])
             r = R
         c = len(s);
-        for e in r.pop().split(' '):
+        for e in r[0].split(' '):
             if c + len(e) + 1 < (80 - 9):
                 s += e + ' '
             else:
