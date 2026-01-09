@@ -32,13 +32,13 @@ MAKEFLAGS       += --no-print-directory
 PYTHON          := $(VENV)/bin/python3
 
 GIT_EBUILD      := https://github.com/grgbr/ebuild.git
-GIT_DPACK       := https://github.com/grgbr/dpack.git
+GIT_DPACK       := https://github.com/grgbr/dpack.git -b rewrite
 GIT_STROLL      := https://github.com/grgbr/stroll.git
 GIT_UTILS       := https://github.com/grgbr/utils.git
 GIT_UTILS       := https://github.com/grgbr/utils.git
-GIT_GALV        := https://github.com/grgbr/galv.git -b svc
+GIT_GALV        := https://github.com/grgbr/galv.git -b rpc
 GIT_ELOG        := https://github.com/grgbr/elog.git
-GIT_HED         := https://github.com/geneo-5/hed.git
+GIT_HED         := https://github.com/geneo-5/hed.git -b dpack/rewrite
 GIT_AFLPLUSPLUS := https://github.com/AFLplusplus/AFLplusplus.git
 
 AFL_MAKE_ARGS   := BUILDDIR:=$(BUILDDIR)/afl DESTDIR:="$(DESTDIR)" \
