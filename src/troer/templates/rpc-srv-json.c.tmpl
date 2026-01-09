@@ -15,8 +15,8 @@
 #set $rpc = $elems['rpc-enum']
 
 int __${pre}nonull(1, 2) __nothrow __warn_result
-${pre}srv_msg_from_json(struct hed_rpc_msg *conn,
-			struct json_object    *object)
+${pre}srv_msg_from_json(struct galv_rpc_msg *conn,
+			struct json_object *object)
 {
 	return 0;
 }

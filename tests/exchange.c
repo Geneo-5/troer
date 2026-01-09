@@ -19,7 +19,7 @@ int main(void)
 
 
 int
-rpc_srv_add(struct hed_rpc_msg *msg, struct rpc_tuple *req)
+rpc_srv_add(struct galv_rpc_msg *msg, struct rpc_tuple *req)
 {
 	int32_t ans;
 

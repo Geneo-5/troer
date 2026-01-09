@@ -1,3 +1,4 @@
+#set $len_entries = len($entries)
 #for $e in $entries
 #if 'repeated' in $e
 static int __${pre}nonull(1, 3)
@@ -40,6 +41,10 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 	object = json_object_new_object();
 	if (!object)
 		return NULL;
+
+	ret = dpack_array_decode_count_equ(decoder, ${len_entries});
+	if (ret)
+		goto error;
 
 #for $e in $entries
 #if 'repeated' in $e
@@ -85,6 +90,10 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 	int ret;
 	struct json_object *obj;
 	size_t nb __unused;
+
+	ret = dpack_array_begin_encode(encoder, ${len_entries});
+	if (ret)
+		return ret;
 
 #for $e in $entries
 	obj = json_object_object_get(object, "${e.id}");

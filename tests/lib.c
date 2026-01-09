@@ -36,8 +36,10 @@ static void handler(int sig __unused)
 static int
 pack_to_file(char * file)
 {
-	struct dpack_decoder  dec;
-	struct dpack_encoder  enc;
+	struct dpack_decoder_buffer dec_buf;
+	struct dpack_decoder * dec = (struct dpack_decoder *)&dec_buf;
+	struct dpack_encoder_buffer enc_buf;
+	struct dpack_encoder * enc = (struct dpack_encoder *)&enc_buf;
 	struct lib_afl        lib = {0};
 	struct json_object   *obj = NULL;
 	char                 *out = NULL;
@@ -60,7 +62,7 @@ pack_to_file(char * file)
 		printf("Cannot open file %s\n", file);
 		return 1;
 	}
-	
+
 	out = malloc(LIB_AFL_PACKED_SIZE_MAX);
 	if (!out) {
 		printf("Cannot alloc %zu io\n", LIB_AFL_PACKED_SIZE_MAX);
@@ -68,8 +70,8 @@ pack_to_file(char * file)
 		goto error;
 	}
 
-	dpack_encoder_init_buffer(&enc, out, LIB_AFL_PACKED_SIZE_MAX);
-	if (lib_enc_afl(&enc, &lib)) {
+	dpack_encoder_init_buffer(&enc_buf, out, LIB_AFL_PACKED_SIZE_MAX);
+	if (lib_enc_afl(enc, &lib)) {
 		printf("Fail to encode lib_afl\n");
 		goto error;
 	}
@@ -81,10 +83,9 @@ pack_to_file(char * file)
 		goto error;
 	}
 */
-	dpack_decoder_init_buffer(&dec, (const char *)out,
-				  dpack_encoder_space_used(&enc));
+	dpack_decoder_init_buffer(&dec_buf, out, dpack_encoder_space_used(enc));
 
-	obj = lib_dec_afl_to_json(&dec);
+	obj = lib_dec_afl_to_json(dec);
 	if (!obj) {
 		printf("Fail to decode to json\n");
 		goto error;
@@ -99,8 +100,8 @@ pack_to_file(char * file)
 error:
 	if (obj)
 		json_object_put(obj);
-	dpack_encoder_fini(&enc, DPACK_DONE);
-	dpack_decoder_fini(&dec);
+	dpack_encoder_fini(enc, DPACK_DONE);
+	dpack_decoder_fini(dec);
 	lib_fini_afl(&lib);
 	close(fd);
 	free(out);
@@ -112,7 +113,7 @@ int main(int argc, char * const argv[])
 	struct dpack_decoder   dec;
 	struct dpack_encoder   enc;
 	struct lib_afl         lib;
-	char                  *out;
+	uint8_t               *out;
 	int                    ret = EXIT_FAILURE;
 	bool                   abort = DPACK_ABORT;
 
@@ -145,7 +146,7 @@ int main(int argc, char * const argv[])
 			goto end;
 
 		assert(!lib_init_afl(&lib));
-		dpack_decoder_init_buffer(&dec, (const char *)buf, len);
+		dpack_decoder_init_buffer(&dec, buf, len);
 		dpack_encoder_init_buffer(&enc, out, LIB_AFL_PACKED_SIZE_MAX);
 		ret = lib_decode_afl(&dec, &lib);
 		if (!ret) {

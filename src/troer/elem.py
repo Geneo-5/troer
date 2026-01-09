@@ -339,7 +339,6 @@ class RpcElem(EnumElem):
     def __init__(self, lib, yaml):
         super().__init__(lib, yaml)
         lib.header.add("<hed/rpc.h>")
-        lib.header.add("<hed/codec.h>")
 
         self.req  = []
         self.evnt = []
@@ -370,7 +369,7 @@ class RpcElem(EnumElem):
             return '(DPACK_UINT32_SIZE_MAX)'
         s = '\\\n\t(DPACK_UINT32_SIZE_MAX + '
         return self.formatMaxSize(r, s)
-    
+
     def getCltMaxSize(self):
         r = set()
         for e in self.req:
@@ -448,13 +447,13 @@ class StructElem(Elem):
         self.asterisk  = '*'
         self.init    = f"{self.pre}init_{self.id}"
         self.fini    = f"{self.pre}fini_{self.id}"
+        lib.header.add("<dpack/array.h>")
 
         for i in self.yaml['entries']:
             lib.addElem(i['type'], f"{self.name}_", i)
             e = lib.getElem(f"{self.name}_{i['name']}")
             self.entries.append(e)
             if 'repeated' in i:
-                lib.header.add("<dpack/array.h>")
                 if isinstance(i['repeated'], (int, str)):
                     if isinstance(i['repeated'], str):
                         print(f"WARNING: cannot check {e.repeated} value")

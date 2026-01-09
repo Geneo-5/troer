@@ -3,10 +3,11 @@ ${parent.pid}_enc_${id}_to_json(struct hed_repo *repo)
 {
 	${assert_fn}(repo);
 
-	struct dpack_decoder  dec;
-	struct json_object *array;
-	struct json_object *obj;
-	struct json_object *tmp;
+	struct dpack_decoder_buffer dec_buf;
+	struct dpack_decoder * dec = (struct dpack_decoder *)&dec_buf;
+	struct json_object * array;
+	struct json_object * obj;
+	struct json_object * tmp;
 	struct hed_repo_iter * iter;
 	int ret;
 	size_t klen;
@@ -31,18 +32,18 @@ ${parent.pid}_enc_${id}_to_json(struct hed_repo *repo)
 		if (!obj)
 			goto close;
 
-		dpack_decoder_init_buffer(&dec, (const char *)kdata, klen);
-		tmp = ${key.decode}_to_json(&dec);
-		dpack_decoder_fini(&dec);
+		dpack_decoder_init_buffer(&dec_buf, kdata, klen);
+		tmp = ${key.decode}_to_json(dec);
+		dpack_decoder_fini(dec);
 		if (!tmp)
 			goto putobj;
 
 		if(json_object_object_add(obj, "key", tmp))
 			goto putobj;
 
-		dpack_decoder_init_buffer(&dec, (const char *)vdata, vlen);
-		tmp = ${object.decode}_to_json(&dec);
-		dpack_decoder_fini(&dec);
+		dpack_decoder_init_buffer(&dec_buf, vdata, vlen);
+		tmp = ${object.decode}_to_json(dec);
+		dpack_decoder_fini(dec);
 		if (!tmp)
 			goto putobj;
 

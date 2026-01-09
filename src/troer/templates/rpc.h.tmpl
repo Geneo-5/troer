@@ -1,34 +1,34 @@
 #for $e in $req
 
 extern int
-${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
-	__${pre}nonull(1, 2) __nothrow __warn_result;
+${e.pre}srv_dispatch_${e.id}(struct galv_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
 
 extern int
-${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
-	__${pre}nonull(1, 2) __nothrow __warn_result;
+${e.pre}clt_dispatch_${e.id}(struct galv_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
 
 #if 'request' in $e
 #set $nl = '1, 2' if $e.request.asterisk else 1
 
 extern int
-${e.pre}srv_${e.id}(struct hed_rpc_msg *msg,
+${e.pre}srv_${e.id}(struct galv_rpc_msg *msg,
                     ${e.request.type} ${e.request.asterisk}req)
 	__${pre}nonull(${nl}) __nothrow __warn_result;
 
 extern int
-${e.pre}req_${e.id}(struct hed_rpc_conn *conn,
+${e.pre}req_${e.id}(struct galv_rpc_conn *conn,
                     ${e.request.type} ${e.request.asterisk}req,
                     void * ctx)
 	__${pre}nonull(${nl}) __nothrow __warn_result;
 #else
 
 extern int
-${e.pre}srv_${e.id}(struct hed_rpc_msg *msg)
+${e.pre}srv_${e.id}(struct galv_rpc_msg *msg)
 	__${pre}nonull(1) __nothrow __warn_result;
 
 extern int
-${e.pre}req_${e.id}(struct hed_rpc_conn *conn, void * ctx)
+${e.pre}req_${e.id}(struct galv_rpc_conn *conn, void * ctx)
 	__${pre}nonull(1) __nothrow __warn_result;
 #end if
 #if 'response' in $e
@@ -39,7 +39,7 @@ ${e.pre}clt_${e.id}(void * ctx, uint32_t status,
 	__${pre}nonull(1) __nothrow __warn_result;
 
 extern int
-${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
+${e.pre}ans_${e.id}(struct galv_rpc_msg *msg,
                     uint32_t status,
                     ${e.response.type} ${e.response.asterisk}req)
 	__${pre}nonull(1) __nothrow __warn_result;
@@ -50,7 +50,7 @@ ${e.pre}clt_${e.id}(void *ctx, uint32_t status)
 	__nothrow __warn_result;
 
 extern int
-${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
+${e.pre}ans_${e.id}(struct galv_rpc_msg *msg,
                     uint32_t status)
 	__${pre}nonull(1) __nothrow __warn_result;
 #end if
@@ -58,56 +58,56 @@ ${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
 #for $e in $ntfy
 
 extern int
-${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
-	__${pre}nonull(1, 2) __nothrow __warn_result;
+${e.pre}srv_dispatch_${e.id}(struct galv_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
 #if 'request' in $e
 #set $nl = '1, 2' if $e.request.asterisk else 1
 
 extern int
-${e.pre}srv_${e.id}(struct hed_rpc_msg *msg,
+${e.pre}srv_${e.id}(struct galv_rpc_msg *msg,
                     ${e.request.type} ${e.request.asterisk}req)
 	__${pre}nonull(${nl}) __nothrow __warn_result;
 
 extern int
-${e.pre}ntf_${e.id}(struct hed_rpc_conn *conn,
+${e.pre}ntf_${e.id}(struct galv_rpc_conn *conn,
                         ${e.request.type} ${e.request.asterisk}req)
 	__${pre}nonull(${nl}) __nothrow __warn_result;
 #else
 
 extern int
-${e.pre}srv_${e.id}(struct hed_rpc_msg *msg)
+${e.pre}srv_${e.id}(struct galv_rpc_msg *msg)
 	__${pre}nonull(1) __nothrow __warn_result;
 
 extern int
-${e.pre}ntf_${e.id}(struct hed_rpc_conn *conn)
+${e.pre}ntf_${e.id}(struct galv_rpc_conn *conn)
 	__${pre}nonull(1) __nothrow __warn_result;
 #end if
 #end for
 #for $e in $evnt
 
 extern int
-${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
-	__${pre}nonull(1, 2) __nothrow __warn_result;
+${e.pre}clt_dispatch_${e.id}(struct galv_rpc_msg *msg)
+	__${pre}nonull(1) __nothrow __warn_result;
 #if 'request' in $e
 #set $nl = '1, 2' if $e.request.asterisk else 1
 
 extern int
-${e.pre}clt_${e.id}(struct hed_rpc_conn *conn,
+${e.pre}clt_${e.id}(struct galv_rpc_conn *conn,
                     ${e.request.type} ${e.request.asterisk}req)
 	__${pre}nonull(${nl}) __nothrow __warn_result;
 
 extern int
-${e.pre}ntf_${e.id}(struct hed_rpc_conn *conn,
+${e.pre}ntf_${e.id}(struct galv_rpc_conn *conn,
                     ${e.request.type} ${e.request.asterisk}req)
 	__${pre}nonull(${nl}) __nothrow __warn_result;
 #else
 
 extern int
-${e.pre}clt_${e.id}(struct hed_rpc_conn *conn)
+${e.pre}clt_${e.id}(struct galv_rpc_conn *conn)
 	__${pre}nonull(1) __nothrow __warn_result;
 
 extern int
-${e.pre}ntf_${e.id}(struct hed_rpc_conn *conn)
+${e.pre}ntf_${e.id}(struct galv_rpc_conn *conn)
 	__${pre}nonull(1) __nothrow __warn_result;
 #end if
 #end for
@@ -118,16 +118,16 @@ ${e.pre}ntf_${e.id}(struct hed_rpc_conn *conn)
 
 extern const struct hed_rpc_accept_conf ${pre}srv_conf;
 
-extern const struct hed_rpc_connect_conf ${pre}clt_conf;
+extern const struct galv_rpc_connect_conf ${pre}clt_conf;
 
 #if $json
 
 extern struct json_object *
-${pre}clt_msg_to_json(struct hed_rpc_msg *msg)
+${pre}clt_msg_to_json(struct galv_rpc_msg *msg)
 	__${pre}nonull(1) __nothrow __warn_result;
 
 extern int
-${pre}srv_msg_from_json(struct hed_rpc_msg *msg,
+${pre}srv_msg_from_json(struct galv_rpc_msg *msg,
 			struct json_object    *object)
 	__${pre}nonull(1, 2) __nothrow __warn_result;
 #end if
