@@ -30,6 +30,7 @@ MAKE_ARGS        = EXTRA_CFLAGS:="$(EXTRA_CFLAGS)" \
 		   LD:=$(CC)
 MAKEFLAGS       += --no-print-directory
 PYTHON          := $(VENV)/bin/python3
+PYTHON3         ?= python3
 
 GIT_EBUILD      := https://github.com/grgbr/ebuild.git
 GIT_DPACK       := https://github.com/grgbr/dpack.git -b rewrite
@@ -72,6 +73,7 @@ endef
 
 src := Makefile $(shell find src/ tests/ -type f)
 
+.PRECIOUS: $(DESTDIR)/bin/test_%
 $(DESTDIR)/bin/test_%: EXTRA_CFLAGS+=$(call UP,-DCONFIG_TEST_$*_ASSERT)
 $(DESTDIR)/bin/test_%: tests/test-%.yaml $(src) | $(BUILDDIR)/test-% \
 	$(BUILDDIR)/troer-% \
