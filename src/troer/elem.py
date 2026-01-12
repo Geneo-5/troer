@@ -460,6 +460,7 @@ class StructElem(Elem):
                     e.repeated_min = i['repeated']
                     e.repeated_max = i['repeated']
                 else:
+                    lib.header.add("<stdlib.h>")
                     e.repeated_min = i['repeated']['min']
                     e.repeated_max = i['repeated']['max']
                     if isinstance(e.repeated_min, int) and \
