@@ -152,12 +152,17 @@ static struct hed_rpc_auth ${pre}srv_auth[] = {
 #end for
 };
 
-const struct hed_rpc_accept_conf
-${pre}srv_conf = HED_RPC_ACCEPT_CONF(0,
+static const struct hed_rpc_factory
+${pre}srv_factory = HED_RPC_FACTORY(${rpc.maxid},
+                                    stroll_array_nr(${pre}srv_auth),
+                                    ${pre}srv_auth);
+
+STROLL_IGNORE_WARN("-Wcast-qual")
+const struct galv_rpc_accept_conf
+${pre}srv_conf = GALV_RPC_ACCEPT_CONF(0,
                                      SOCK_CLOEXEC,
                                      ${pre.upper()}SRV_MAX_PAYLOAD,
                                      CONFIG_HED_BUFF_CAPA_MAX,
-                                     ${rpc.maxid},
-                                     stroll_array_nr(${pre}srv_auth),
-                                     ${pre}srv_auth);
+                                     (struct galv_rpc_factory *)&${pre}srv_factory.base);
+STROLL_RESTORE_WARN
 ## ex: filetype=c
