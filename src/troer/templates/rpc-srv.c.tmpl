@@ -31,7 +31,7 @@ ${e.pre}ans_${e.id}(struct galv_rpc_msg *msg,
 	struct dpack_encoder *encoder;
 	int                   ret;
 
-	encoder = galv_rpc_get_encoder(msg);
+	encoder = galv_rpc_msg_encoder(msg);
 	ret = dpack_encode_uint32(encoder, status);
 	if (ret)
 		goto error;
@@ -80,7 +80,7 @@ ${e.pre}ntf_${e.id}(struct galv_rpc_msg *conn)
 
 #if 'request' in $e
 
-	ret = ${e.request.encode}(galv_rpc_get_encoder(msg), req);
+	ret = ${e.request.encode}(galv_rpc_msg_encoder(msg), req);
 	if (ret)
 		goto error;
 #end if
@@ -111,7 +111,7 @@ ${e.pre}srv_dispatch_${e.id}(struct galv_rpc_msg *msg)
 		goto error;
 #end if
 
-	ret = ${e.request.decode}(galv_rpc_get_decoder(msg), &param);
+	ret = ${e.request.decode}(galv_rpc_msg_decoder(msg), &param);
 	if (ret)
 		goto ${goto};
 

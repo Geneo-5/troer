@@ -63,7 +63,7 @@ ${e.pre}clt_dispatch_${e.id}(struct galv_rpc_msg *msg)
 #end if
 	uint32_t status;
 	int ret;
-	struct dpack_decoder *decoder = galv_rpc_get_decoder(msg);
+	struct dpack_decoder *decoder = galv_rpc_msg_decoder(msg);
 	void * ctx = galv_rpc_msg_get_ctx(msg);
 
 #if 'response' in $e and 'init' in $e.response and $e.response.init
@@ -142,7 +142,7 @@ ${e.pre}clt_dispatch_${e.id}(struct galv_rpc_msg *msg)
 #if 'request' in $e
 	${e.request.type} param;
 	int ret;
-	struct dpack_decoder *decoder = galv_rpc_get_decoder(msg);
+	struct dpack_decoder *decoder = galv_rpc_msg_decoder(msg);
 #if 'init' in $e.request
 
 	ret = ${e.request.init}(&param);
