@@ -87,7 +87,7 @@ ${e.pre}ntf_${e.id}(struct galv_rpc_msg *conn)
 
 	return galv_rpc_push_msg(conn, msg);
 error:
-	galv_rpc_drop_msg(msg);
+	galv_rpc_msg_drop(msg);
 	return ret;
 }
 #end for
@@ -132,6 +132,7 @@ fini:
 	${e.request.fini}(&param);
 #end if
 error:
+	galv_rpc_msg_drop(msg);
 	return ret;
 #else
 
