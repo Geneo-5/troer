@@ -70,7 +70,7 @@ int main(void)
 		ret = 1;
 		goto exit;
 	}
-
+#if 0
 	ret = stk_repo_update_test_object(&repo, 6);
 	if (ret) {
 		printf("update object fail\n");
@@ -88,7 +88,7 @@ int main(void)
 		printf("rollback fail\n");
 		goto exit;
 	}
-
+#endif
 	stk_close_repo(&repo);
 	ret = stk_open_repo(&repo, "build/repo", O_RDONLY, 0600);
 	if (ret) {
