@@ -34,13 +34,13 @@ PYTHON          := $(VENV)/bin/python3
 PYTHON3         ?= python3
 
 GIT_EBUILD      := https://github.com/grgbr/ebuild.git
-GIT_DPACK       := https://github.com/grgbr/dpack.git -b rewrite
+GIT_DPACK       := https://github.com/grgbr/dpack.git
 GIT_STROLL      := https://github.com/grgbr/stroll.git
 GIT_UTILS       := https://github.com/grgbr/utils.git
 GIT_UTILS       := https://github.com/grgbr/utils.git
-GIT_GALV        := https://github.com/grgbr/galv.git -b acceptor
+GIT_GALV        := https://github.com/grgbr/galv.git
 GIT_ELOG        := https://github.com/grgbr/elog.git
-GIT_HED         := https://github.com/geneo-5/hed.git -b dpack/rewrite
+GIT_HED         := https://github.com/geneo-5/hed.git
 GIT_AFLPLUSPLUS := https://github.com/AFLplusplus/AFLplusplus.git
 GIT_LIBDESOCK   := https://github.com/Geneo-5/libdesock.git
 
