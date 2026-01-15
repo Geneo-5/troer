@@ -43,6 +43,9 @@ def cli():
             default=None, help='Path to directory to write include file')
     parser.add_argument('--include-dir', type=str, dest='include_dir',
             default=None, help='Path to directory to write include file')
+    parser.add_argument('--commit', default='2pc',
+            choices=['2pc', '3pc'],
+            help='Choice commit protocol implementation')
     parser.add_argument('--regex', default='posix',
             choices=['posix', 'pcre2'],
             help='Choice regex string implementation')

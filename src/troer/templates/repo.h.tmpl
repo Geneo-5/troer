@@ -37,10 +37,12 @@ ${pre}close_${id}(struct hed_repo * repo)
 extern int
 ${pre}reload_${id}(struct hed_repo * repo)
  __${pre}nonull(1) __warn_result;
+#if $lib.args.commit == '3pc'
 
 extern int
 ${pre}rollback_${id}(struct hed_repo * repo)
 __${pre}nonull(1) __warn_result;
+#end if
 #if $json
 
 extern struct json_object *

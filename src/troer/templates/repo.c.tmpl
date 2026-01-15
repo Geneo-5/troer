@@ -93,6 +93,7 @@ ${pre}reload_${id}(struct hed_repo * repo)
 	
 	return ret;
 }
+#if $lib.args.commit == '3pc'
 
 extern int __${pre}nonull(1) __warn_result
 ${pre}rollback_${id}(struct hed_repo * repo)
@@ -111,6 +112,7 @@ ${pre}rollback_${id}(struct hed_repo * repo)
 	
 	return ret;
 }
+#end if
 
 #for $e in $entries
 ${e.getDefinition()}
