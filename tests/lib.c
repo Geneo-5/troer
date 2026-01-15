@@ -10,8 +10,11 @@
 #include <json-c/json_util.h>
 #include <json-c/json_tokener.h>
 #include <test-lib/lib.h>
+#include <stdlib.h>
 
 __AFL_FUZZ_INIT();
+
+#define BIN
 
 #define STACK_DEPTH   128
 static void handler(int sig __unused)
@@ -36,11 +39,13 @@ static void handler(int sig __unused)
 static int
 pack_to_file(char * file)
 {
-	struct dpack_decoder  dec;
-	struct dpack_encoder  enc;
+	struct dpack_decoder_buffer dec_buf;
+	struct dpack_decoder * dec = (struct dpack_decoder *)&dec_buf;
+	struct dpack_encoder_buffer enc_buf;
+	struct dpack_encoder * enc = (struct dpack_encoder *)&enc_buf;
 	struct lib_afl        lib = {0};
 	struct json_object   *obj = NULL;
-	char                 *out = NULL;
+	uint8_t              *out = NULL;
 	int                   fd;
 	int                   ret = EXIT_FAILURE;
 
@@ -60,7 +65,7 @@ pack_to_file(char * file)
 		printf("Cannot open file %s\n", file);
 		return 1;
 	}
-	
+
 	out = malloc(LIB_AFL_PACKED_SIZE_MAX);
 	if (!out) {
 		printf("Cannot alloc %zu io\n", LIB_AFL_PACKED_SIZE_MAX);
@@ -68,23 +73,24 @@ pack_to_file(char * file)
 		goto error;
 	}
 
-	dpack_encoder_init_buffer(&enc, out, LIB_AFL_PACKED_SIZE_MAX);
-	if (lib_enc_afl(&enc, &lib)) {
+	dpack_encoder_init_buffer(&enc_buf, out, LIB_AFL_PACKED_SIZE_MAX);
+	if (lib_enc_afl(enc, &lib)) {
 		printf("Fail to encode lib_afl\n");
 		goto error;
 	}
 
-	dpack_encoder_fini(&enc, DPACK_DONE);
-/*
-	if (write(fd, out, dpack_encoder_space_used(&enc)) < 0) {
+	dpack_encoder_fini(enc);
+
+#ifdef BIN
+	if (write(fd, out, dpack_encoder_space_used(enc)) < 0) {
 		printf("Fail to write %s file\n", file);
 		goto error;
 	}
-*/
-	dpack_decoder_init_buffer(&dec, (const char *)out,
-				  dpack_encoder_space_used(&enc));
+#else
+	dpack_decoder_init_buffer(&dec_buf, out, dpack_encoder_space_used(enc));
 
-	obj = lib_dec_afl_to_json(&dec);
+	obj = lib_dec_afl_to_json(dec);
+	dpack_decoder_fini(dec);
 	if (!obj) {
 		printf("Fail to decode to json\n");
 		goto error;
@@ -94,13 +100,12 @@ pack_to_file(char * file)
 		printf("Fail to write %s file\n", file);
 		goto error;
 	}
-
+#endif
 	ret = 0;
 error:
 	if (obj)
 		json_object_put(obj);
-	dpack_encoder_fini(&enc, DPACK_DONE);
-	dpack_decoder_fini(&dec);
+	dpack_encoder_fini(enc);
 	lib_fini_afl(&lib);
 	close(fd);
 	free(out);
@@ -109,12 +114,13 @@ error:
 
 int main(int argc, char * const argv[])
 {
-	struct dpack_decoder   dec;
-	struct dpack_encoder   enc;
+	struct dpack_decoder_buffer dec_buf;
+	struct dpack_decoder * dec = (struct dpack_decoder *)&dec_buf;
+	struct dpack_encoder_buffer enc_buf;
+	struct dpack_encoder * enc = (struct dpack_encoder *)&enc_buf;
 	struct lib_afl         lib;
-	char                  *out;
+	uint8_t               *out;
 	int                    ret = EXIT_FAILURE;
-	bool                   abort = DPACK_ABORT;
 
 	signal(SIGABRT, handler);
 
@@ -137,7 +143,7 @@ int main(int argc, char * const argv[])
 		size_t len __unused = __AFL_FUZZ_TESTCASE_LEN;
 #pragma GCC diagnostic pop
 
-/*
+#ifdef BIN
 		if (len < LIB_AFL_PACKED_SIZE_MIN)
 			goto end;
 
@@ -145,37 +151,36 @@ int main(int argc, char * const argv[])
 			goto end;
 
 		assert(!lib_init_afl(&lib));
-		dpack_decoder_init_buffer(&dec, (const char *)buf, len);
-		dpack_encoder_init_buffer(&enc, out, LIB_AFL_PACKED_SIZE_MAX);
-		ret = lib_decode_afl(&dec, &lib);
+		dpack_decoder_init_buffer(&dec_buf, buf, len);
+		dpack_encoder_init_buffer(&enc_buf, out, LIB_AFL_PACKED_SIZE_MAX);
+		ret = lib_dec_afl(dec, &lib);
 		if (!ret) {
-			assert(!lib_encode_afl(&enc, &lib));
-			abort = DPACK_DONE;
+			assert(!lib_enc_afl(enc, &lib));
 		}
-		dpack_encoder_fini(&enc, abort);
-		dpack_decoder_fini(&dec);
+		dpack_encoder_fini(enc);
+		dpack_decoder_fini(dec);
 		lib_fini_afl(&lib);
-*/
+#else
 		struct json_object *obj = json_tokener_parse((const char *)buf);
 		if (!obj)
 			goto end;
 
-		dpack_encoder_init_buffer(&enc, out, LIB_AFL_PACKED_SIZE_MAX);
-		ret = lib_enc_afl_from_json(&enc, obj);
+		dpack_encoder_init_buffer(&enc_buf, out, LIB_AFL_PACKED_SIZE_MAX);
+		ret = lib_enc_afl_from_json(enc, obj);
 		if (!ret) {
-			dpack_decoder_init_buffer(&dec, out,
-					dpack_encoder_space_used(&enc));
+			dpack_decoder_init_buffer(&dec_buf, out,
+					dpack_encoder_space_used(enc));
 			assert(!lib_init_afl(&lib));
-			assert(!lib_dec_afl(&dec, &lib));
-			dpack_encoder_fini(&enc, DPACK_DONE);
-			dpack_encoder_init_buffer(&enc, out, LIB_AFL_PACKED_SIZE_MAX);
-			assert(!lib_enc_afl(&enc, &lib));
-			abort = DPACK_DONE;
-			dpack_decoder_fini(&dec);
+			assert(!lib_dec_afl(dec, &lib));
+			dpack_encoder_fini(enc);
+			dpack_encoder_init_buffer(&enc_buf, out, LIB_AFL_PACKED_SIZE_MAX);
+			assert(!lib_enc_afl(enc, &lib));
+			dpack_decoder_fini(dec);
 			lib_fini_afl(&lib);
 		}
-		dpack_encoder_fini(&enc, abort);
+		dpack_encoder_fini(enc);
 		json_object_put(obj);
+#endif
 end:
 #ifdef __AFL_LEAK_CHECK
 		__AFL_LEAK_CHECK();

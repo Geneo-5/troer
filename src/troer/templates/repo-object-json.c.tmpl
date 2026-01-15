@@ -3,7 +3,8 @@ ${parent.pid}_enc_${id}_to_json(struct hed_repo *repo)
 {
 	${assert_fn}(repo);
 
-	struct dpack_decoder  dec;
+	struct dpack_decoder_buffer dec_buf;
+	struct dpack_decoder * dec = (struct dpack_decoder *)&dec_buf;
 	struct json_object *obj;
 	uint8_t * data;
 	size_t len;
@@ -14,9 +15,9 @@ ${parent.pid}_enc_${id}_to_json(struct hed_repo *repo)
 	if (ret)
 		return NULL;
 
-	dpack_decoder_init_buffer(&dec, (const char *)data, len);
-	obj = ${object.decode}_to_json(&dec);
-	dpack_decoder_fini(&dec);
+	dpack_decoder_init_buffer(&dec_buf, data, len);
+	obj = ${object.decode}_to_json(dec);
+	dpack_decoder_fini(dec);
 	return obj;
 }
 ## ex: filetype=c

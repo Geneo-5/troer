@@ -16,9 +16,8 @@
 #for $e in $rpc.req
 
 #if 'request' in $e
-#set $nl = '1, 2' if $e.request.asterisk else 1
-int __${pre}nonull(${nl}) __nothrow __warn_result
-${e.pre}req_${e.id}(struct hed_rpc_conn *conn,
+int
+${e.pre}req_${e.id}(struct galv_rpc_conn *conn,
                     ${e.request.type} ${e.request.asterisk}req,
                     void * ctx)
 {
@@ -26,79 +25,69 @@ ${e.pre}req_${e.id}(struct hed_rpc_conn *conn,
 	${assert_fn}(req);
 #end if
 #else
-int __${pre}nonull(1) __nothrow __warn_result
-${e.pre}req_${e.id}(struct hed_rpc_conn *conn, void * ctx)
+int
+${e.pre}req_${e.id}(struct galv_rpc_conn *conn, void * ctx)
 {
 #end if
 	${assert_fn}(conn);
 
-	struct hed_rpc_msg   *msg;
-	struct dpack_encoder  encoder;
-	int                   ret;
+	struct galv_rpc_msg   *msg;
+	int                    ret = 0;
 
-	msg = hed_rpc_alloc_req(conn, ctx);
+	msg = galv_rpc_create_request(conn, ${e.pid.upper()}, ctx);
 	if (!msg)
 		return -ENOMEM;
-
-	hed_rpc_msg_set_id(msg, ${e.pid.upper()});
-	hed_encoder_init(&encoder, msg);
-	ret = dpack_encode_uint32(&encoder, ${e.pid.upper()});
-	if (ret)
-		goto error;
 #if 'request' in $e
 
-	ret = ${e.request.encode}(&encoder, req);
-	if (ret)
-		goto error;
-#end if
-
-	hed_encoder_fini(&encoder, DPACK_DONE);
-	ret = hed_rpc_push_msg(msg);
+	ret = ${e.request.encode}(galv_rpc_msg_encoder(msg), req);
 	if (ret)
 		goto drop;
+#end if
 
-	return 0;
-error:
-	hed_encoder_fini(&encoder, DPACK_ABORT);
+	return galv_rpc_push_msg(msg);
 drop:
-	hed_rpc_drop_msg(msg);
+	galv_rpc_msg_drop(msg);
 	return ret;
 }
 
-int __${pre}nonull(1, 2) __nothrow __warn_result
-${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
+#set $goto = 'fini' if 'response' in e and 'fini' in $e.response and $e.response.fini else 'error'
+int
+${e.pre}clt_dispatch_${e.id}(struct galv_rpc_msg *msg)
 {
 	${assert_fn}(msg);
 	${assert_fn}(msg->id == ${e.pid.upper()});
-	${assert_fn}(hed_rpc_msg_type(msg) == GALV_SESS_HEAD_REPLY_TYPE);
+	${assert_fn}(galv_rpc_msg_type(msg) == GALV_SESS_HEAD_REPLY_TYPE);
 
 #if 'response' in $e
 	${e.response.type} param;
 #end if
 	uint32_t status;
 	int ret;
-	void * ctx = hed_rpc_msg_get_ctx(msg);
+	struct dpack_decoder *decoder = galv_rpc_msg_decoder(msg);
+	void * ctx = galv_rpc_msg_context(msg);
 
-#if 'response' in $e and 'init' in $e.response and $e.response.init
+	ret = dpack_decode_uint32(decoder, &status);
+	if (ret)
+		goto error;
+#if 'response' in $e
+#if 'init' in $e.response and $e.response.init
+
 	ret = ${e.response.init}(&param);
 	if (ret)
 		goto error;
-
 #end if
-	ret = dpack_decode_uint32(decoder, &status);
-#if 'response' in $e
-	if ((!ret) && (!status))
+
+	if (status) {
 		ret = ${e.response.decode}(decoder, &param);
-
+		if (ret)
+			goto ${goto};
+		ret = ${e.pre}clt_${e.id}(ctx, status, ${e.response.ampersand}param);
+	} else
+#if $e.response.ampersand
+		ret = ${e.pre}clt_${e.id}(ctx, status, NULL);
+#else
+		ret = ${e.pre}clt_${e.id}(ctx, status, 0);
 #end if
-#set $goto = 'fini' if 'response' in e and 'fini' in $e.response and $e.response.fini else 'error'
-	hed_decoder_fini(decoder);
-	decoder = NULL;
-	if (ret)
-		goto ${goto};
-
-#if 'response' in $e
-	ret = ${e.pre}clt_${e.id}(ctx, status, ${e.response.ampersand}param);
 #else
 	ret = ${e.pre}clt_${e.id}(ctx, status);
 #end if
@@ -108,75 +97,59 @@ fini:
 	${e.response.fini}(&param);
 #end if
 error:
-	if (decoder)
-		hed_decoder_fini(decoder);
-	hed_rpc_drop_msg(msg);
+	galv_rpc_msg_drop(msg);
 	return ret;
 }
 #end for
 #for $e in $rpc.evnt
 #if 'request' in $e
-#set $nl = '1, 2' if $e.request.asterisk else 1
 
-int __${pre}nonull(${nl}) __nothrow __warn_result
-${e.pre}ntf_${e.id}(struct hed_rpc_msg *conn,
+int
+${e.pre}ntf_${e.id}(struct galv_rpc_msg *conn,
                         ${e.request.type} ${e.request.asterisk}req)
 {
 #if $e.request.asterisk
 	${assert_fn}(req);
 #end if
 #else
-int __${pre}nonull(1) __nothrow __warn_result
-${e.pre}ntf_${e.id}(struct hed_rpc_msg *conn)
+int
+${e.pre}ntf_${e.id}(struct galv_rpc_msg *conn)
 {
 #end if
 	${assert_fn}(conn);
 
-	struct hed_rpc_msg   *msg;
-	struct dpack_encoder  encoder;
-	int                   ret;
+	struct galv_rpc_msg   *msg;
+	int                    ret = 0;
 
-	msg = hed_rpc_alloc_ntf(conn);
+	msg = galv_rpc_create_notif(conn, ${e.pid.upper()});
 	if (!msg)
 		return -ENOMEM;
-
-	hed_encoder_init(&encoder, msg);
-
-	ret = dpack_encode_uint32(&encoder, ${e.pid.upper()});
-	if (ret)
-		goto error;
 #if 'request' in $e
 
-	ret = ${e.request.encode}(&encoder, req);
-	if (ret)
-		goto error;
-#end if
-
-	hed_encoder_fini(&encoder, DPACK_DONE);
-	ret = hed_rpc_push_msg(msg);
+	ret = ${e.request.encode}(galv_rpc_msg_encoder(msg), req);
 	if (ret)
 		goto drop;
+#end if
 
-	return 0;
-error:
-	hed_encoder_fini(&encoder, DPACK_ABORT);
+	return galv_rpc_push_msg(msg);
 drop:
-	hed_rpc_drop_msg(msg);
+	galv_rpc_msg_drop(msg);
 	return ret;
 }
 
 #set $goto = 'fini' if 'request' in e and 'fini' in $e.request else 'error'
-int __${pre}nonull(1, 2) __nothrow __warn_result
-${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
+int
+${e.pre}clt_dispatch_${e.id}(struct galv_rpc_msg *msg)
 {
 	${assert_fn}(msg);
 	${assert_fn}(msg->id == ${e.pid.upper()});
-	${assert_fn}(hed_rpc_msg_get_type(msg) == GALV_SESS_HEAD_NOTIF_TYPE);
+	${assert_fn}(galv_rpc_msg_get_type(msg) == GALV_SESS_HEAD_NOTIF_TYPE);
 
-	struct hed_rpc_conn *conn = hed_msg_get_conn(msg);
+	struct galv_rpc_conn *conn = hed_msg_get_conn(msg);
 #if 'request' in $e
 	${e.request.type} param;
 	int ret;
+	struct dpack_decoder *decoder = galv_rpc_msg_decoder(msg);
 #if 'init' in $e.request
 
 	ret = ${e.request.init}(&param);
@@ -185,15 +158,8 @@ ${e.pre}clt_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *deco
 #end if
 
 	ret = ${e.request.decode}(decoder, &param);
-	hed_decoder_fini(decoder);
 	if (ret)
 		goto ${goto};
-
-	msg = hed_rpc_reply(msg);
-	if (!msg) {
-		ret = -ENOMEM;
-		goto ${goto};
-	}
 
 	ret = ${e.pre}clt_${e.id}(conn, ${e.request.ampersand}param);
 #if 'fini' in $e.request
@@ -201,12 +167,11 @@ fini:
 	${e.request.fini}(&param);
 #end if
 error:
-	hed_rpc_drop_msg(msg);
+	galv_rpc_msg_drop(msg);
 	return ret;
 #else
 
-	hed_decoder_fini(decoder);
-	hed_rpc_drop_msg(msg);
+	galv_rpc_msg_drop(msg);
 	return ${e.pre}clt_${e.id}(conn);
 #end if
 }
@@ -221,8 +186,8 @@ static const struct hed_rpc_auth ${pre}clt_auth[] = {
 #end for
 };
 
-const struct hed_rpc_connect_conf
-${pre}clt_conf = HED_RPC_CONNECT_CONF(0,
+const struct galv_rpc_connect_conf
+${pre}clt_conf = galv_rpc_connECT_CONF(0,
                                      SOCK_CLOEXEC,
                                      ${pre.upper()}CLT_MAX_PAYLOAD,
                                      CONFIG_HED_BUFF_CAPA_MAX

@@ -17,27 +17,22 @@
 
 int __${pre}nonull(1) __nothrow __warn_result
 #if 'response' in $e
-${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
+${e.pre}ans_${e.id}(struct galv_rpc_msg *msg,
                     uint32_t status,
                     ${e.response.type} ${e.response.asterisk}ans)
 #else
-${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
+${e.pre}ans_${e.id}(struct galv_rpc_msg *msg,
                     uint32_t status)
 #end if
 {
 	${assert_fn}(msg);
 	${assert_fn}(msg->id == ${e.pid.upper()});
 
-	struct dpack_encoder  encoder;
+	struct dpack_encoder *encoder;
 	int                   ret;
 
-	hed_encoder_init(&encoder, msg);
-
-	ret = dpack_encode_uint32(&encoder, ${e.pid.upper()});
-	if (ret)
-		goto error;
-
-	ret = dpack_encode_uint32(&encoder, status);
+	encoder = galv_rpc_msg_encoder(msg);
+	ret = dpack_encode_uint32(encoder, status);
 	if (ret)
 		goto error;
 #if 'response' in $e
@@ -46,17 +41,15 @@ ${e.pre}ans_${e.id}(struct hed_rpc_msg *msg,
 #if $e.response.asterisk
 		${assert_fn}(ans);
 #end if
-		ret = ${e.response.encode}(&encoder, ans);
+		ret = ${e.response.encode}(encoder, ans);
 		if (ret)
 			goto error;
 
 	}
 #end if
 
-	hed_encoder_fini(&encoder, DPACK_DONE);
-	return hed_rpc_push_msg(msg);
+	return galv_rpc_push_msg(msg);
 error:
-	hed_encoder_fini(&encoder, DPACK_ABORT);
 	return ret;
 }
 #end for
@@ -65,7 +58,7 @@ error:
 #set $nl = '1, 2' if $e.request.asterisk else 1
 
 int __${pre}nonull(${nl}) __nothrow __warn_result
-${e.pre}ntf_${e.id}(struct hed_rpc_msg *conn,
+${e.pre}ntf_${e.id}(struct galv_rpc_msg *conn,
                         ${e.request.type} ${e.request.asterisk}req)
 {
 #if $e.request.asterisk
@@ -73,36 +66,28 @@ ${e.pre}ntf_${e.id}(struct hed_rpc_msg *conn,
 #end if
 #else
 int __${pre}nonull(1) __nothrow __warn_result
-${e.pre}ntf_${e.id}(struct hed_rpc_msg *conn)
+${e.pre}ntf_${e.id}(struct galv_rpc_msg *conn)
 {
 #end if
 	${assert_fn}(conn);
 
-	struct hed_rpc_msg   *msg;
-	struct dpack_encoder  encoder;
-	int                   ret;
+	struct galv_rpc_msg   *msg;
+	int                    ret;
 
-	msg = hed_rpc_alloc_msg(conn);
+	msg = galv_rpc_create_notif(conn, ${e.pid.upper()});
 	if (!msg)
 		return -ENOMEM;
 
-	hed_encoder_init(&encoder, msg);
-
-	ret = dpack_encode_uint32(&encoder, ${e.pid.upper()});
-	if (ret)
-		goto error;
 #if 'request' in $e
 
-	ret = ${e.request.encode}(&encoder, req);
+	ret = ${e.request.encode}(galv_rpc_msg_encoder(msg), req);
 	if (ret)
 		goto error;
 #end if
 
-	hed_encoder_fini(&encoder, DPACK_DONE);
-	return hed_rpc_push_msg(conn, msg);
+	return galv_rpc_push_msg(conn, msg);
 error:
-	hed_encoder_fini(&encoder, DPACK_ABORT);
-	hed_rpc_drop_msg(msg);
+	galv_rpc_msg_drop(msg);
 	return ret;
 }
 #end for
@@ -111,7 +96,7 @@ error:
 #set $goto = 'fini' if 'request' in e and 'fini' in $e.request and $e.request.fini else 'error'
 
 int __${pre}nonull(1) __nothrow __warn_result
-${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *decoder)
+${e.pre}srv_dispatch_${e.id}(struct galv_rpc_msg *msg)
 {
 	${assert_fn}(msg);
 	${assert_fn}(msg->id == ${e.pid.upper()});
@@ -126,13 +111,11 @@ ${e.pre}srv_dispatch_${e.id}(struct hed_rpc_msg *msg, struct dpack_decoder *deco
 		goto error;
 #end if
 
-	ret = ${e.request.decode}(decoder, &param);
-	hed_decoder_fini(decoder);
-	decoder = NULL;
+	ret = ${e.request.decode}(galv_rpc_msg_decoder(msg), &param);
 	if (ret)
 		goto ${goto};
 
-	ret = hed_rpc_make_reply(msg);
+	ret = galv_rpc_make_reply(msg);
 	if (ret)
 		goto ${goto};
 
@@ -149,14 +132,11 @@ fini:
 	${e.request.fini}(&param);
 #end if
 error:
-	if (decoder)
-		hed_decoder_fini(decoder);
-
+	galv_rpc_msg_drop(msg);
 	return ret;
 #else
 
-	hed_decoder_fini(decoder);
-	ret = hed_rpc_make_reply(msg);
+	ret = galv_rpc_make_reply(msg);
 	if (ret)
 		return ret;
 
@@ -173,12 +153,14 @@ static struct hed_rpc_auth ${pre}srv_auth[] = {
 #end for
 };
 
-const struct hed_rpc_accept_conf
-${pre}srv_conf = HED_RPC_ACCEPT_CONF(0,
+const struct hed_rpc_factory
+${pre}srv_factory = HED_RPC_FACTORY(${rpc.maxid},
+                                    stroll_array_nr(${pre}srv_auth),
+                                    ${pre}srv_auth);
+
+const struct galv_rpc_accept_conf
+${pre}srv_conf = GALV_RPC_ACCEPT_CONF(0,
                                      SOCK_CLOEXEC,
                                      ${pre.upper()}SRV_MAX_PAYLOAD,
-                                     CONFIG_HED_BUFF_CAPA_MAX,
-                                     ${rpc.maxid},
-                                     stroll_array_nr(${pre}srv_auth),
-                                     ${pre}srv_auth);
+                                     CONFIG_HED_BUFF_CAPA_MAX);
 ## ex: filetype=c

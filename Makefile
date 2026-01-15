@@ -9,13 +9,14 @@ EXTERNDIR       := $(CURDIR)/extern
 EBUILDDIR       := $(EXTERNDIR)/ebuild
 DEPENDSDIR      := $(EXTERNDIR)/depends
 AFLDIR          := $(EXTERNDIR)/AFLplusplus
+LIBDESOCKDIR    := $(EXTERNDIR)/libdesock
 BUILDDIR        := $(CURDIR)/build
 DESTDIR         := $(CURDIR)/out
 VENV            := $(DESTDIR)
 EXTRA_CFLAGS    := -I$(DESTDIR)/usr/local/include -I/usr/include \
 		   -Wall -Wextra -Wformat=2 -Wconversion -Wundef -Wshadow \
 		   -Wcast-qual -Wcast-align -Wmissing-declarations -Xanalyzer \
-		   -ggdb -g -D_GNU_SOURCE
+		   -ggdb -g -D_GNU_SOURCE -Wno-cpp
 EXTRA_LDFLAGS   := -L$(DESTDIR)/usr/local/lib -L/usr/lib/x86_64-linux-gnu/ -rdynamic
 LLVM_VERSION    := 19
 CC              := $(DESTDIR)/usr/local/bin/afl-clang-lto
@@ -30,20 +31,25 @@ MAKE_ARGS        = EXTRA_CFLAGS:="$(EXTRA_CFLAGS)" \
 		   LD:=$(CC)
 MAKEFLAGS       += --no-print-directory
 PYTHON          := $(VENV)/bin/python3
+PYTHON3         ?= python3
 
 GIT_EBUILD      := https://github.com/grgbr/ebuild.git
 GIT_DPACK       := https://github.com/grgbr/dpack.git
 GIT_STROLL      := https://github.com/grgbr/stroll.git
 GIT_UTILS       := https://github.com/grgbr/utils.git
 GIT_UTILS       := https://github.com/grgbr/utils.git
-GIT_GALV        := https://github.com/grgbr/galv.git -b svc
+GIT_GALV        := https://github.com/grgbr/galv.git
 GIT_ELOG        := https://github.com/grgbr/elog.git
 GIT_HED         := https://github.com/geneo-5/hed.git
 GIT_AFLPLUSPLUS := https://github.com/AFLplusplus/AFLplusplus.git
+GIT_LIBDESOCK   := https://github.com/Geneo-5/libdesock.git
 
-AFL_MAKE_ARGS   := BUILDDIR:=$(BUILDDIR)/afl DESTDIR:="$(DESTDIR)" \
+AFL_MAKE_ARGS    = BUILDDIR:=$(BUILDDIR)/afl DESTDIR:="$(DESTDIR)" \
 		   PERFORMANCE=1 CODE_COVERAGE=1 CODE_COVERAGE=1 \
 		   INTROSPECTION=1 LLVM_CONFIG=llvm-config-$(LLVM_VERSION)
+
+LIBDESOCKBDIR   := $(BUILDDIR)/libdesock/
+LIBDESOCK       := $(LIBDESOCKBDIR)/libdesock.so
 
 -include .config.mk
 -include $(EBUILDDIR)/helpers.mk
@@ -70,8 +76,9 @@ $(subst r,R,$(subst s,S,$(subst t,T,$(subst u,U,$(subst v,V,$(subst w,W,\
 $(subst x,X,$(subst y,Y,$(subst z,Z,$(1))))))))))))))))))))))))))))
 endef
 
-src := Makefile $(shell find src/ tests/ -type f)
+src := Makefile $(shell find src/ tests/ -type f) $(wildcard $(DESTDIR)/usr/local/lib/*.a)
 
+.PRECIOUS: $(DESTDIR)/bin/test_%
 $(DESTDIR)/bin/test_%: EXTRA_CFLAGS+=$(call UP,-DCONFIG_TEST_$*_ASSERT)
 $(DESTDIR)/bin/test_%: tests/test-%.yaml $(src) | $(BUILDDIR)/test-% \
 	$(BUILDDIR)/troer-% \
@@ -108,7 +115,10 @@ test-%: $(DESTDIR)/bin/test_%
 run-%: $(DESTDIR)/bin/test_%
 	@$(CURDIR)/scripts/run.sh $*
 
-install: venv dpack stroll utils galv hed elog
+afl-%: $(DESTDIR)/bin/test_%
+	@$(CURDIR)/scripts/afl.sh $*
+
+install: venv dpack stroll utils galv hed elog $(LIBDESOCK)
 
 clean:
 	@rm -rf $(BUILDDIR)/troer-*
@@ -141,21 +151,28 @@ $(EXTERNDIR)/%: | $(EXTERNDIR)
 
 $(CC): | $(AFLDIR)
 	@echo ===== build afl++
-	@$(MAKE) -C $(AFLDIR) $(AFL_MAKE_ARGS) source-only
+	@$(MAKE) -C $(AFLDIR) $(AFL_MAKE_ARGS) distrib
 	@$(MAKE) -C $(AFLDIR) $(AFL_MAKE_ARGS) install
+
+$(LIBDESOCK): | $(LIBDESOCKBDIR) $(LIBDESOCKDIR)
+	@echo ===== build libdesock
+	@cd $(LIBDESOCKDIR); meson setup $(LIBDESOCKBDIR)
+	@cd $(LIBDESOCKBDIR); meson configure -D debug_desock=true -D allow_dup_stdin=true
+	@cd $(LIBDESOCKBDIR); meson compile
 
 define extern_cmd
 guiconfig-$(strip $(1)): | $$(EXTERNDIR)/$(strip $(1)) $$(EBUILDDIR) $$(AFLDIR) $$(CC)
 	@$$(MAKE) -C $$(EXTERNDIR)/$(strip $(1)) $$(MAKE_ARGS) BUILDDIR:=$$(BUILDDIR)/$(strip $(1)) menuconfig
 
-$$(BUILDDIR)/$(strip $(1))/.config: $$(BUILDDIR)/$(strip $(1)) | $$(EXTERNDIR)/$(strip $(1)) $$(EBUILDDIR) $$(AFLDIR) $$(CC)
+$$(BUILDDIR)/$(strip $(1))/.config: | $$(BUILDDIR)/$(strip $(1)) $$(EXTERNDIR)/$(strip $(1)) $$(EBUILDDIR) $$(AFLDIR) $$(CC)
 	@cp defconfig/$(strip $(1)).defconfig $$@
 	@$$(MAKE) -C $$(EXTERNDIR)/$(strip $(1)) $$(MAKE_ARGS) BUILDDIR:=$$(BUILDDIR)/$(strip $(1)) olddefconfig
 
-$$(DESTDIR)/usr/local/lib/lib$(strip $(1)).a: $$(BUILDDIR)/$(strip $(1))/.config $(2)
+$$(DESTDIR)/usr/local/lib/lib$(strip $(1)).a: $$(BUILDDIR)/$(strip $(1))/.config $(patsubst %,$$(DESTDIR)/usr/local/lib/lib%.a,$(2))
 	@echo ===== build $(strip $(1))
 	@$$(MAKE) -C $$(EXTERNDIR)/$(strip $(1)) $$(MAKE_ARGS) BUILDDIR:=$$(BUILDDIR)/$(strip $(1)) build
 	@$$(MAKE) -C $$(EXTERNDIR)/$(strip $(1)) $$(MAKE_ARGS) BUILDDIR:=$$(BUILDDIR)/$(strip $(1)) install
+	@touch $$@
 
 $(strip $(1)): $$(DESTDIR)/usr/local/lib/lib$(strip $(1)).a
 endef

@@ -4,7 +4,8 @@ ${parent.pid}_get_${id}(struct hed_repo *repo, ${object.type} *value)
 	${assert_fn}(repo);
 	${assert_fn}(value);
 
-	struct dpack_decoder  dec;
+	struct dpack_decoder_buffer dec_buf;
+	struct dpack_decoder * dec = (struct dpack_decoder *)&dec_buf;
 	int ret;
 	uint8_t * data;
 	size_t len;
@@ -15,9 +16,9 @@ ${parent.pid}_get_${id}(struct hed_repo *repo, ${object.type} *value)
 	if (ret)
 		return ret;
 
-	dpack_decoder_init_buffer(&dec, (const char *)data, len);
-	ret = ${object.decode}(&dec, value);
-	dpack_decoder_fini(&dec);
+	dpack_decoder_init_buffer(&dec_buf, data, len);
+	ret = ${object.decode}(dec, value);
+	dpack_decoder_fini(dec);
 	return ret;
 }
 
@@ -38,7 +39,7 @@ ${parent.pid}_update_${id}(struct hed_repo *repo,
 	dpack_encoder_init_buffer(&enc, (char *)data,
 	                          ${object.elem.pid.upper()}_PACKED_SIZE_MAX);
 	ret = ${object.encode}(&enc, value);
-	dpack_encoder_fini(&enc, DPACK_DONE);
+	dpack_encoder_fini(&enc);
 	if (ret)
 		return ret;
 

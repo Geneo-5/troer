@@ -1,3 +1,4 @@
+#set $len_entries = len($entries)
 extern int __${pre}nonull(1) __warn_result ${deprecated}
 ${check}(const ${type} * value)
 {
@@ -72,6 +73,10 @@ ${decode}(struct dpack_decoder * decoder,
 
 	int ret;
 
+	ret = dpack_array_decode_count_equ(decoder, ${len_entries});
+	if (ret)
+		return ret;
+
 #for $e in $entries
 #if 'repeated' in $e
 #if isinstance(e.repeated, (int, str))
@@ -103,6 +108,10 @@ ${encode}(struct dpack_encoder * encoder,
 	${assert_fn}(${check}(value) == 0);
 
 	int ret;
+
+	ret = dpack_array_begin_encode(encoder, ${len_entries});
+	if (ret)
+		return ret;
 
 #for $e in $entries
 #if 'repeated' in $e

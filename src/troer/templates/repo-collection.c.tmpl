@@ -9,16 +9,17 @@ ${parent.pid}_${id}_enc_key(uint8_t *data, const ${key.type} ${key.asterisk}key)
 #end if
 
 	int ret;
-	struct dpack_encoder enc;
+	struct dpack_encoder_buffer enc_buf;
+	struct dpack_encoder * enc = (struct dpack_encoder *)&enc_buf;
 
-	dpack_encoder_init_buffer(&enc, (char *)data,
+	dpack_encoder_init_buffer(&enc_buf, data,
 	                          ${key.elem.pid.upper()}_PACKED_SIZE_MAX);
-	ret = ${key.encode}(&enc, key);
-	dpack_encoder_fini(&enc, DPACK_DONE);
+	ret = ${key.encode}(enc, key);
+	dpack_encoder_fini(enc);
 	if (ret < 0)
 		return ret;
 
-	return (ssize_t)dpack_encoder_space_used(&enc);
+	return (ssize_t)dpack_encoder_space_used(enc);
 }
 
 #set $nonull  = '1'
@@ -41,7 +42,8 @@ ${parent.pid}_update_${id}(struct hed_repo *repo,
 #end if
 
 	int ret;
-	struct dpack_encoder enc;
+	struct dpack_encoder_buffer enc_buf;
+	struct dpack_encoder * enc = (struct dpack_encoder *)&enc_buf;
 	ssize_t klen;
 	uint8_t key_data[${key.elem.pid.upper()}_PACKED_SIZE_MAX];
 	uint8_t value_data[${object.elem.pid.upper()}_PACKED_SIZE_MAX];
@@ -50,16 +52,16 @@ ${parent.pid}_update_${id}(struct hed_repo *repo,
 	if (klen < 0)
 		return (int)klen;
 
-	dpack_encoder_init_buffer(&enc, (char *)value_data,
+	dpack_encoder_init_buffer(&enc_buf, value_data,
 	                          ${object.elem.pid.upper()}_PACKED_SIZE_MAX);
-	ret = ${object.encode}(&enc, value);
-	dpack_encoder_fini(&enc, DPACK_DONE);
+	ret = ${object.encode}(enc, value);
+	dpack_encoder_fini(enc);
 	if (ret)
 		return ret;
 
 	return hed_repo_update(repo, "${name}",
 	                       key_data, (size_t)klen, value_data,
-	                       (size_t)dpack_encoder_space_used(&enc));
+	                       (size_t)dpack_encoder_space_used(enc));
 }
 
 #set $nonull = '1, 2, 3' if $key.asterisk else '1, 2'
@@ -78,7 +80,8 @@ ${parent.pid}_get_${id}(struct hed_repo *repo,
 	${assert_fn}(value);
 
 	int ret;
-	struct dpack_decoder dec;
+	struct dpack_decoder_buffer dec_buf;
+	struct dpack_decoder * dec = (struct dpack_decoder *)&dec_buf;
 	ssize_t klen;
 	size_t len;
 	uint8_t * data;
@@ -93,9 +96,9 @@ ${parent.pid}_get_${id}(struct hed_repo *repo,
 	if (ret)
 		return ret;
 
-	dpack_decoder_init_buffer(&dec, (const char *)data, len);
-	ret = ${object.decode}(&dec, value);
-	dpack_decoder_fini(&dec);
+	dpack_decoder_init_buffer(&dec_buf, data, len);
+	ret = ${object.decode}(dec, value);
+	dpack_decoder_fini(dec);
 	return ret;
 }
 
@@ -132,8 +135,9 @@ ${parent.pid}_${id}_step(struct hed_repo_iter *iter,
 	${assert_fn}(iter->repo);
 	${assert_fn}(iter->cursor);
 	${assert_fn}(!!key | !!value);
-	
-	struct dpack_decoder  dec;
+
+	struct dpack_decoder_buffer dec_buf;
+	struct dpack_decoder * dec = (struct dpack_decoder *)&dec_buf;
 	int err;
 	int ret;
 	size_t klen;
@@ -147,17 +151,17 @@ ${parent.pid}_${id}_step(struct hed_repo_iter *iter,
 		return ret;
 
 	if (key) {
-		dpack_decoder_init_buffer(&dec, (const char *)kdata, klen);
-		err = ${key.decode}(&dec, key);
-		dpack_decoder_fini(&dec);
+		dpack_decoder_init_buffer(&dec_buf, kdata, klen);
+		err = ${key.decode}(dec, key);
+		dpack_decoder_fini(dec);
 		if (err)
 			return err;
 	}
 
 	if (value) {
-		dpack_decoder_init_buffer(&dec, (const char *)vdata, vlen);
-		err = ${object.decode}(&dec, value);
-		dpack_decoder_fini(&dec);
+		dpack_decoder_init_buffer(&dec_buf, vdata, vlen);
+		err = ${object.decode}(dec, value);
+		dpack_decoder_fini(dec);
 		if (err)
 			return err;
 	}
