@@ -1,5 +1,5 @@
 #set $len_entries = len($entries)
-extern int __${pre}nonull(1) __warn_result ${deprecated}
+int
 ${check}(const ${type} * value)
 {
 	${assert_fn}(value);
@@ -64,7 +64,7 @@ ${decode}_array_${e.id}(struct dpack_decoder * decoder,
 
 #end if
 #end for
-extern int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
+int
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
 {
@@ -100,7 +100,7 @@ ${decode}(struct dpack_decoder * decoder,
 	return ${check}(value);
 }
 
-extern int __${pre}nonull(1) __nothrow __warn_result ${deprecated}
+int
 ${encode}(struct dpack_encoder * encoder,
 	  const ${type} * value)
 {
@@ -145,7 +145,7 @@ ${encode}(struct dpack_encoder * encoder,
 	return 0;
 }
 
-extern int __${pre}nonull(1) __warn_result ${deprecated}
+int
 ${init}(${type} * value __unused)
 {
 	${assert_fn}(value);
@@ -179,7 +179,7 @@ ${init}(${type} * value __unused)
 	return ret;
 }
 
-extern void __${pre}nonull(1) ${deprecated}
+void
 ${fini}(${type} * value __unused)
 {
 	${assert_fn}(value);
@@ -204,7 +204,7 @@ ${fini}(${type} * value __unused)
 #for $e in $entries
 #if 'repeated' in $e and not isinstance(e.repeated, (int, str))
 
-${e.type} *__${pre}nonull(1) ${deprecated}
+${e.type} *
 ${pid}_append_${e.id}(${type} * data)
 {
 	${assert_fn}(data);

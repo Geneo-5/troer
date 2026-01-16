@@ -1,5 +1,5 @@
 
-extern struct json_object * __${pre}nonull(1) __nothrow __warn_result ${deprecated}
+struct json_object *
 ${decode}_to_json(struct dpack_decoder * decoder)
 {
 	${assert_fn}(decoder);
@@ -22,7 +22,7 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 	return json_object_new_string(str);
 };
 
-extern int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
+int
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 {

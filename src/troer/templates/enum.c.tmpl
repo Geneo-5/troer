@@ -9,7 +9,7 @@ static const struct ${pid}_bisect_entry ${pid}_bisect_array[] = {
 #end for
 };
 
-extern const char * __warn_result ${deprecated}
+const char *
 ${pid}_to_str(${type} value)
 {
 	unsigned long i;
@@ -21,7 +21,7 @@ ${pid}_to_str(${type} value)
 	return NULL;
 }
 
-static int __${pre}nonull(1, 2)
+static int
 ${pid}_bisect_cmp(const void * __restrict key,
 		  const void * __restrict entry,
 		  void *                  data __unused)
@@ -34,7 +34,7 @@ ${pid}_bisect_cmp(const void * __restrict key,
 	return strcmp(k, e);
 }
 
-extern int __${pre}nonull(1, 2) __warn_result ${deprecated}
+int
 ${pid}_from_str(const char *str, ${type} *value)
 {
 	${assert_fn}(str);
@@ -55,7 +55,7 @@ ${pid}_from_str(const char *str, ${type} *value)
 	return 0;
 }
 
-extern int __${pre}nonull(1) ${deprecated}
+int
 ${pid}_dump_str(const char ** buf, size_t nr __unused)
 {
 	${assert_fn}(buf);

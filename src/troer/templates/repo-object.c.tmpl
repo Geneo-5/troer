@@ -1,4 +1,4 @@
-int __${pre}nonull(1, 2) __warn_result
+int
 ${parent.pid}_get_${id}(struct hed_repo *repo, ${object.type} *value)
 {
 	${assert_fn}(repo);
@@ -22,8 +22,7 @@ ${parent.pid}_get_${id}(struct hed_repo *repo, ${object.type} *value)
 	return ret;
 }
 
-#set $nonull = '1, 2' if $object.asterisk else '1'
-int __${pre}nonull($nonull) __warn_result
+int
 ${parent.pid}_update_${id}(struct hed_repo *repo,
                            const ${object.type} ${object.asterisk}value)
 {
@@ -32,20 +31,21 @@ ${parent.pid}_update_${id}(struct hed_repo *repo,
 	${assert_fn}(value);
 #end if
 
-	struct dpack_encoder enc;
+	struct dpack_encoder_buffer enc_buf;
+	struct dpack_encoder * enc = (struct dpack_encoder *)&enc_buf;
 	int ret;
 	uint8_t data[${object.elem.pid.upper()}_PACKED_SIZE_MAX];
 
-	dpack_encoder_init_buffer(&enc, (char *)data,
+	dpack_encoder_init_buffer(&enc_buf, data,
 	                          ${object.elem.pid.upper()}_PACKED_SIZE_MAX);
-	ret = ${object.encode}(&enc, value);
-	dpack_encoder_fini(&enc);
+	ret = ${object.encode}(enc, value);
+	dpack_encoder_fini(enc);
 	if (ret)
 		return ret;
 
 	return hed_repo_update(repo, "${name}",
 	                       (const uint8_t *)".", 1,
-	                       data, (size_t)dpack_encoder_space_used(&enc));
+	                       data, (size_t)dpack_encoder_space_used(enc));
 }
 
 ## ex: filetype=c

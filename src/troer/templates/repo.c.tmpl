@@ -36,7 +36,7 @@ end:
 	return ret;
 }
 
-int __${pre}nonull(1, 2) __warn_result
+int
 ${pre}open_${id}(struct hed_repo * repo, const char * path,
                  int flags, mode_t mode)
 {
@@ -76,7 +76,7 @@ error:
 	return ret;
 }
 
-extern int __${pre}nonull(1) __warn_result
+int
 ${pre}reload_${id}(struct hed_repo * repo)
 {
 	${assert_fn}(repo);
@@ -95,7 +95,7 @@ ${pre}reload_${id}(struct hed_repo * repo)
 }
 #if $lib.args.commit == '3pc'
 
-extern int __${pre}nonull(1) __warn_result
+int
 ${pre}rollback_${id}(struct hed_repo * repo)
 {
 	${assert_fn}(repo);

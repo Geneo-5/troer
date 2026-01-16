@@ -43,8 +43,7 @@ class Makefile(Renderer):
 
     def rendering(self, outputDir, indent=None):
         if self.makefile:
-            self.copy(outputDir, 'gpl.rst',                'sphinx/license/gpl.rst')
-            self.copy(outputDir, 'lgpl.rst',               'sphinx/license/lgpl.rst')
+            self.copy(outputDir, 'mit.rst',                'sphinx/license/mit.rst')
             self.copy(outputDir, 'doxyfile',               'sphinx/Doxyfile')
             self._rendering(outputDir, indent, 'api',      'sphinx/api.rst')
             self.copy(outputDir, 'conf.py',                'sphinx/conf.py')
@@ -53,7 +52,6 @@ class Makefile(Renderer):
             self._rendering(outputDir, indent, 'install',  'sphinx/install.rst')
             self.copy(outputDir, 'license.rst',            'sphinx/license.rst')
             self.copy(outputDir, 'COPYING',                'COPYING')
-            self.copy(outputDir, 'COPYING.LESSER',         'COPYING.LESSER')
             self._rendering(outputDir, indent, 'kconfig',  'Config.in')
             self._rendering(outputDir, indent, 'makefile', 'Makefile')
             self._rendering(outputDir, indent, 'readme',   'README.rst')

@@ -22,10 +22,7 @@ ${parent.pid}_${id}_enc_key(uint8_t *data, const ${key.type} ${key.asterisk}key)
 	return (ssize_t)dpack_encoder_space_used(enc);
 }
 
-#set $nonull  = '1'
-#set $nonull += ', 2' if $key.asterisk else ''
-#set $nonull += ', 2' if $object.asterisk else ''
-int __${pre}nonull($nonull) __warn_result
+int
 ${parent.pid}_update_${id}(struct hed_repo *repo,
                            const ${key.type} ${key.asterisk}key,
                            const ${object.type} ${object.asterisk}value)
@@ -64,8 +61,7 @@ ${parent.pid}_update_${id}(struct hed_repo *repo,
 	                       (size_t)dpack_encoder_space_used(enc));
 }
 
-#set $nonull = '1, 2, 3' if $key.asterisk else '1, 2'
-int __${pre}nonull($nonull) __warn_result
+int
 ${parent.pid}_get_${id}(struct hed_repo *repo,
                         const ${key.type} ${key.asterisk}key,
                         ${object.type} *value)
@@ -102,8 +98,7 @@ ${parent.pid}_get_${id}(struct hed_repo *repo,
 	return ret;
 }
 
-#set $nonull = '1, 2' if $key.asterisk else '1'
-int __${pre}nonull($nonull) __warn_result
+int
 ${parent.pid}_del_${id}(struct hed_repo *repo,
                         const ${key.type} ${key.asterisk}key)
 {
@@ -126,7 +121,7 @@ ${parent.pid}_del_${id}(struct hed_repo *repo,
 }
 
 
-int __${pre}nonull(1) __warn_result
+int
 ${parent.pid}_${id}_step(struct hed_repo_iter *iter,
                          ${key.type} *key,
                          ${object.type} *value)
