@@ -21,7 +21,7 @@ ${parent.pid}_enc_${id}_to_json(struct hed_repo *repo)
 
 	iter = ${parent.pid}_${id}_create_iter(repo);
 	if (!iter)
-		goto putarray;
+		return array;
 
 	do {
 		ret = hed_repo_step(iter, &kdata, &klen, &vdata, &vlen);
