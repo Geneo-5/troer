@@ -60,7 +60,6 @@ putobj:
 	json_object_put(obj);
 close:
 	${parent.pid}_${id}_destroy_iter(iter);
-putarray:
 	json_object_put(array);
 	return NULL;
 }
