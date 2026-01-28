@@ -168,13 +168,18 @@ $$(BUILDDIR)/$(strip $(1))/.config: | $$(BUILDDIR)/$(strip $(1)) $$(EXTERNDIR)/$
 	@cp defconfig/$(strip $(1)).defconfig $$@
 	@$$(MAKE) -C $$(EXTERNDIR)/$(strip $(1)) $$(MAKE_ARGS) BUILDDIR:=$$(BUILDDIR)/$(strip $(1)) olddefconfig
 
-$$(DESTDIR)/usr/local/lib/lib$(strip $(1)).a: $$(BUILDDIR)/$(strip $(1))/.config $(patsubst %,$$(DESTDIR)/usr/local/lib/lib%.a,$(2))
+$$(DESTDIR)/usr/local/lib/lib$(strip $(1)).a: \
+	$$(BUILDDIR)/$(strip $(1))/.config \
+	$(patsubst %,$$(DESTDIR)/usr/local/lib/lib%.a,$(2)) \
+	$(shell find extern/$(strip $(1)) -type f)
 	@echo ===== build $(strip $(1))
 	@$$(MAKE) -C $$(EXTERNDIR)/$(strip $(1)) $$(MAKE_ARGS) BUILDDIR:=$$(BUILDDIR)/$(strip $(1)) build
 	@$$(MAKE) -C $$(EXTERNDIR)/$(strip $(1)) $$(MAKE_ARGS) BUILDDIR:=$$(BUILDDIR)/$(strip $(1)) install
 	@touch $$@
 
 $(strip $(1)): $$(DESTDIR)/usr/local/lib/lib$(strip $(1)).a
+
+$$(DESTDIR)/bin/test_%: $$(DESTDIR)/usr/local/lib/lib$(strip $(1)).a
 endef
 
 define extern_rules

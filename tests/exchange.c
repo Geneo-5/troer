@@ -3,7 +3,7 @@
 #include <test-exchange/lib.h>
 
 static const uint8_t test_data[] = {
-	'\x01', '\x00', '\x03', '\x00', '\x00', '\x92', '\x01', '\x02'
+	'\x01', '\x00', '\x03', '\x00', '\x00', (uint8_t)'\x92', '\x01', '\x02'
 };
 
 static int
@@ -34,7 +34,7 @@ int main(int argc, char * const argv[])
 	if (argc == 2)
 		return pack_to_file(argv[1]);
 
-	ret = hed_srv_init(&srv, "sock", &rpc_srv_conf);
+	ret = hed_srv_init(&srv, "sock", &rpc_srv_conf, &rpc_srv_factory);
 	if (ret)
 		return ret;
 	//ret = hed_srv_run(&srv);
