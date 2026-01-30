@@ -1,0 +1,36 @@
+schema: exchange
+name: test-clnt
+version: 0.0.1
+doc: Test exchange schema and idl
+prefix: rpc_
+
+declarations:
+  -
+    name: tuple
+    type: struct
+    entries:
+      -
+        name: a
+        type: s32
+      -
+        name: b
+        type: s32
+  -
+    name: int
+    type: s32
+  -
+    name: role
+    type: enum
+    entries:
+      - 'all'
+
+rpc:
+  -
+    name: add
+    value: 0
+    type: request
+    roles:
+      - $role_all
+    request: $tuple
+    response: $int
+
