@@ -17,7 +17,7 @@
 
 #if 'request' in $e
 int
-${e.pre}req_${e.id}(struct galv_rpc_conn *conn,
+${e.pre}req_${e.id}(struct galv_rpc_clnt *client,
                     ${e.request.type} ${e.request.asterisk}req,
                     void * ctx)
 {
@@ -26,45 +26,61 @@ ${e.pre}req_${e.id}(struct galv_rpc_conn *conn,
 #end if
 #else
 int
-${e.pre}req_${e.id}(struct galv_rpc_conn *conn, void * ctx)
+${e.pre}req_${e.id}(struct galv_rpc_clnt *client, void * ctx)
 {
 #end if
-	${assert_fn}(conn);
+	${assert_fn}(client);
 
-	struct galv_rpc_msg   *msg;
-	int                    ret = 0;
+	struct galv_rpc_clnt_msg *msg;
+	int                       ret = 0;
 
-	msg = galv_rpc_create_request(conn, ${e.pid.upper()}, ctx);
+	msg = galv_rpc_clnt_create_request(client,
+	                                   ${e.pid.upper()},
+	                                   ${e.pre}clt_dispatch_${e.id},
+	                                   ctx);
 	if (!msg)
 		return -ENOMEM;
 #if 'request' in $e
 
-	ret = ${e.request.encode}(galv_rpc_msg_encoder(msg), req);
+	ret = ${e.request.encode}(galv_rpc_clnt_msg_encoder(msg), req);
 	if (ret)
 		goto drop;
 #end if
 
-	return galv_rpc_push_msg(msg);
+	return galv_rpc_clnt_push_msg(msg);
 drop:
-	galv_rpc_msg_drop(msg);
+	galv_rpc_clnt_msg_drop(msg);
 	return ret;
 }
 
 #set $goto = 'fini' if 'response' in e and 'fini' in $e.response and $e.response.fini else 'error'
 int
-${e.pre}clt_dispatch_${e.id}(struct galv_rpc_msg *msg)
+${e.pre}clt_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event, void *ctx)
 {
 	${assert_fn}(msg);
 	${assert_fn}(msg->id == ${e.pid.upper()});
-	${assert_fn}(galv_rpc_msg_type(msg) == GALV_SESS_HEAD_REPLY_TYPE);
+	${assert_fn}(galv_rpc_clnt_msg_type(msg) == GALV_SESS_HEAD_REPLY_TYPE);
 
 #if 'response' in $e
 	${e.response.type} param;
 #end if
 	uint32_t status;
 	int ret;
-	struct dpack_decoder *decoder = galv_rpc_msg_decoder(msg);
-	void * ctx = galv_rpc_msg_context(msg);
+	struct dpack_decoder *decoder = galv_rpc_clnt_msg_decoder(msg);
+
+	if (event) {
+		${assert_fn}(event < 0);
+#if 'response' in $e
+#if $e.response.ampersand
+		ret = ${e.pre}clt_${e.id}(ctx, (uint32_t)-event, NULL);
+#else
+		ret = ${e.pre}clt_${e.id}(ctx, (uint32_t)-event, 0);
+#end if
+#else
+		ret = ${e.pre}clt_${e.id}(ctx, (uint32_t)-event);
+#end if
+		goto error;
+	}
 
 	ret = dpack_decode_uint32(decoder, &status);
 	if (ret)
@@ -77,7 +93,7 @@ ${e.pre}clt_dispatch_${e.id}(struct galv_rpc_msg *msg)
 		goto error;
 #end if
 
-	if (status) {
+	if (!status) {
 		ret = ${e.response.decode}(decoder, &param);
 		if (ret)
 			goto ${goto};
@@ -97,7 +113,7 @@ fini:
 	${e.response.fini}(&param);
 #end if
 error:
-	galv_rpc_msg_drop(msg);
+	galv_rpc_clnt_msg_drop(msg);
 	return ret;
 }
 #end for

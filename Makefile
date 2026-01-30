@@ -38,7 +38,7 @@ GIT_DPACK       := https://github.com/grgbr/dpack.git
 GIT_STROLL      := https://github.com/grgbr/stroll.git
 GIT_UTILS       := https://github.com/grgbr/utils.git
 GIT_UTILS       := https://github.com/grgbr/utils.git
-GIT_GALV        := https://github.com/grgbr/galv.git
+GIT_GALV        := https://github.com/grgbr/galv.git -b sync
 GIT_ELOG        := https://github.com/grgbr/elog.git
 GIT_HED         := https://github.com/geneo-5/hed.git
 GIT_AFLPLUSPLUS := https://github.com/AFLplusplus/AFLplusplus.git
@@ -105,7 +105,7 @@ $(DESTDIR)/bin/test_%: tests/test-%.yaml $(src) | $(BUILDDIR)/test-% \
 		$(call pkgconfig, --cflags pcre2-8) \
 		$(EXTRA_LDFLAGS) -l:libdpack.a -l:libstroll.a -l:libjson-c.a \
 		-l:libutils.a -l:libgalv.a -l:libhed.a -letux_timer_heap \
-		-lelog -l:liblmdb.a -l:libtest-$*.a \
+		-lelog -l:liblmdb.a -l:libgalv_clnt.a -l:libtest-$*.a \
 		-o $@ \
 		tests/$*.c
 

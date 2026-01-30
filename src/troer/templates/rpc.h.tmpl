@@ -5,7 +5,7 @@ ${e.pre}srv_dispatch_${e.id}(struct galv_rpc_msg *msg)
 	__${pre}nonull(1) __nothrow __warn_result;
 
 extern int
-${e.pre}clt_dispatch_${e.id}(struct galv_rpc_msg *msg)
+${e.pre}clt_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event, void *ctx)
 	__${pre}nonull(1) __nothrow __warn_result;
 
 #if 'request' in $e
@@ -17,7 +17,7 @@ ${e.pre}srv_${e.id}(struct galv_rpc_msg *msg,
 	__${pre}nonull(${nl}) __nothrow __warn_result;
 
 extern int
-${e.pre}req_${e.id}(struct galv_rpc_conn *conn,
+${e.pre}req_${e.id}(struct galv_rpc_clnt *client,
                     ${e.request.type} ${e.request.asterisk}req,
                     void * ctx)
 	__${pre}nonull(${nl}) __nothrow __warn_result;
@@ -28,7 +28,7 @@ ${e.pre}srv_${e.id}(struct galv_rpc_msg *msg)
 	__${pre}nonull(1) __nothrow __warn_result;
 
 extern int
-${e.pre}req_${e.id}(struct galv_rpc_conn *conn, void * ctx)
+${e.pre}req_${e.id}(struct galv_rpc_clnt *client, void * ctx)
 	__${pre}nonull(1) __nothrow __warn_result;
 #end if
 #if 'response' in $e
@@ -86,7 +86,7 @@ ${e.pre}ntf_${e.id}(struct galv_rpc_conn *conn)
 #for $e in $evnt
 
 extern int
-${e.pre}clt_dispatch_${e.id}(struct galv_rpc_msg *msg)
+${e.pre}clt_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event, void *ctx)
 	__${pre}nonull(1) __nothrow __warn_result;
 #if 'request' in $e
 #set $nl = '1, 2' if $e.request.asterisk else 1
