@@ -48,7 +48,9 @@ ${e.pre}req_${e.id}(struct galv_rpc_clnt *client, void * ctx)
 #end if
 
 	return galv_rpc_clnt_push_msg(msg);
+#if 'request' in $e
 drop:
+#end if
 	galv_rpc_clnt_msg_drop(msg);
 	return ret;
 }
@@ -116,6 +118,18 @@ error:
 	galv_rpc_clnt_msg_drop(msg);
 	return ret;
 }
+
+int __attribute__((weak))
+#if 'response' in $e
+${e.pre}clt_${e.id}(void * ctx __unused, uint32_t status __unused,
+                    ${e.response.type} ${e.response.asterisk}req __unused)
+#else
+${e.pre}clt_${e.id}(void *ctx __unused, uint32_t status __unused)
+#end if
+{
+	return 0;
+}
+
 #end for
 #for $e in $rpc.evnt
 #if 'request' in $e

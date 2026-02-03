@@ -610,6 +610,8 @@ class Exchange(Lib):
         self._rendering(outputDir, indent, 'rpc-srv.c', f'{self.name}-srv.c')
         print(f"  GEN {outputDir}/{self.name}-clt.c")
         self._rendering(outputDir, indent, 'rpc-clt.c', f'{self.name}-clt.c')
+        print(f"  GEN {outputDir}/{self.name}-clt-json.c")
+        self._rendering(outputDir, indent, 'rpc-clt-json.c', f'{self.name}-clt-json.c')
 
 class Storage(Lib):
     def __init__(self, yaml, args):

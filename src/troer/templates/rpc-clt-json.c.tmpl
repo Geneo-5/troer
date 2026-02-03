@@ -13,6 +13,131 @@
 \#include "${name}.h"
 #end if
 #set $rpc = $elems['rpc-enum']
-#for $e in $rpc.req
 
+static int (enc_from_json)(struct dpack_encoder * encoder, struct json_object * object)[] = {
+#for $e in $rpc.req
+#if 'request' in $e
+	[${e.pid.upper()}] = &${e.request.encode}_from_json,
+#end if
+#end for
+};
+
+static struct json_object * (dec_to_json)(struct dpack_decoder * decoder)[] = {
+#for $e in $rpc.req
+#if 'response' in $e
+	[${e.pid.upper()}] = &${e.response.decode}_to_json,
+#end if
+#end for
+};
+
+typedef int (write_json)(const char *json);
+
+static int
+${pre}ans_to_json(struct galv_rpc_msg *msg, int event, void *ctx)
+{
+	struct json_object *obj;
+	struct json_object *resp;
+	struct dpack_decoder *decoder = galv_rpc_msg_decoder(msg);
+	int ret;
+	uint32_t status;
+	const char *json;
+
+
+	obj = json_object_new_object();
+	if (!obj)
+		goto drop;
+	
+	if (event) {
+		resp = json_object_new_int(-event);
+		if (!resp)
+			goto error;
+
+		ret = json_object_object_add(object, "status", resp);
+		if (ret) {
+			json_object_put(resp);
+			goto error;
+		goto submit;
+	}
+
+	ret = dpack_decode_uint32(decoder, &status);
+	if (ret)
+		goto error;
+
+	resp = json_object_new_int(status);
+	if (!resp)
+		goto error;
+
+	ret = json_object_object_add(object, "status", resp);
+	if (ret) {
+		json_object_put(resp);
+		goto error;
+	}
+
+	if (!status) {
+		if (dec_to_json[msg->id]) {
+			resp = dec_to_json[msg->id](decoder);
+			if (!resp)
+				goto error;
+
+			ret = json_object_object_add(object, "resp", resp);
+			if (ret) {
+				json_object_put(resp);
+				goto error;
+			}
+		}
+	}
+
+submit:
+	json = json_object_to_json_string(obj);
+	(write_json)ctx(json);
+error:
+	json_object_put(obj);
+drop:
+	galv_rpc_msg_drop(msg);
+
+	if (ret)
+		ret = (write_json)ctx(NULL);
+	return ret;
+}
+
+int
+${pre}req_from_json(struct galv_rpc_clnt * client,
+		     struct json_object * object,
+		     write_json *cb)
+{
+	struct galv_rpc_clnt_msg  *msg;
+	json_object  *req_obj;
+	json_object  *param_obj;
+	${rpc.type}   req_id;
+	int ret;
+
+	if ((!json_object_object_get_ex(new_obj, "req", &req_obj)) ||
+	    (json_object_get_type(req_obj) != json_type_string))
+		return -EINVAL;
+
+	ret = ${rpc.pid}_from_str(json_object_get_string(req_obj), &req_id);
+	if (ret)
+		return ret;
+
+	msg = galv_rpc_clnt_create_request(client, req_id,
+	                                   ${pre}ans_to_json, cb);
+	if (!msg)
+		return -ENOMEM;
+
+	if (enc_from_json[req_id]) {
+		if (!json_object_object_get_ex(new_obj, "param", &param_obj)) {
+			ret = -EINVAL;
+			goto drop;
+		}
+
+		ret = enc_from_json[req_id](galv_rpc_clnt_msg_encoder(msg), param_obj);
+		if (ret)
+			goto drop;
+	}
+
+	return galv_rpc_clnt_push_msg(msg);
+drop:
+	galv_rpc_msg_drop(msg);
+	return ret;
+}
 ## ex: filetype=c
