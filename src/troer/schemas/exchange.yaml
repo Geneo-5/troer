@@ -5,14 +5,15 @@ rpc:
   minItems: 1
   items:
     type: object
-    required: [ name, value, type, roles ]
+#    required: [ name, value, type, roles ]
+    required: [ name, type, roles ]
     unevaluatedProperties: false
     properties:
       name:
         $ref: '#/$defs/name'
-      value:
-        type: integer
-        minimum: 0
+#      value:
+#        type: integer
+#        minimum: 0
       type:
         enum: [ request, notify, event ]
       roles:

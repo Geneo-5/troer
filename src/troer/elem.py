@@ -343,14 +343,15 @@ class RpcElem(EnumElem):
         self.req  = []
         self.evnt = []
         self.ntfy = []
-        values = {}
-        self.maxid = 0
+        #values = {}
+        #self.maxid = 0
+        self.maxid = f"{self.pid.upper()}_NB - 1"
         for i in self.yaml['entries']:
-            v = i['value']
-            self.maxid = max(self.maxid, v)
-            if v in values:
-                raise Exception(f"RPC {i['name']} id value ({v}) conflict with {values[v]}")
-            values[v] = i['name']
+            #v = i['value']
+            #self.maxid = max(self.maxid, v)
+            #if v in values:
+            #    raise Exception(f"RPC {i['name']} id value ({v}) conflict with {values[v]}")
+            #values[v] = i['name']
 
             e = RpcEntry(self.lib, i)
             if i['type'] == 'request':
