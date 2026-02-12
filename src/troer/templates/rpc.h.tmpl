@@ -122,14 +122,12 @@ extern const struct galv_rpc_accept_conf ${pre}srv_conf;
 extern const struct galv_rpc_connect_conf ${pre}clt_conf;
 
 #if $json
-
-extern struct json_object *
-${pre}clt_msg_to_json(struct galv_rpc_msg *msg)
-	__${pre}nonull(1) __nothrow __warn_result;
+typedef int (write_json)(const char *json);
 
 extern int
-${pre}srv_msg_from_json(struct galv_rpc_msg *msg,
-			struct json_object    *object)
-	__${pre}nonull(1, 2) __nothrow __warn_result;
+${pre}req_from_json(struct galv_rpc_clnt * client,
+                    struct json_object * object,
+                    write_json *cb)
+	__${pre}nonull(1, 2, 3) __nothrow __warn_result;
 #end if
 ## ex: filetype=c
