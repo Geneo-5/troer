@@ -598,7 +598,7 @@ class Exchange(Lib):
     def __init__(self, yaml, args):
         super().__init__(yaml, args)
         self.header.add("<hed/server.h>")
-        self.header.add("<galv/rpc_clnt.h>")
+        self.header.add("<hed/rpc_clnt.h>")
         self.rpc = {
                 'name': 'rpc-enum',
                 'entries': yaml['rpc']
