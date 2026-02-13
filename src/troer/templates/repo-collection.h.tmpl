@@ -45,7 +45,7 @@ ${parent.pid}_${id}_step(struct hed_repo_iter *iter,
 static inline void __${pre}nonull(1)
 ${parent.pid}_${id}_destroy_iter(struct hed_repo_iter *iter)
 {
-	${assert_fn}(repo);
+	${assert_fn}(iter);
 
 	hed_repo_destroy_iter(iter);
 }
