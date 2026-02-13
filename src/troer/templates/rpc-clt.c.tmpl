@@ -36,7 +36,9 @@ ${e.pre}req_${e.id}(struct galv_rpc_clnt *client,
 
 	struct galv_rpc_clnt_msg *msg;
 	struct hed_rpc_clnt_msg  *hed_msg;
-	int                       ret = 0;
+#if 'request' in $e
+	int                       ret;
+#end if
 
 	msg = galv_rpc_clnt_create_request(client,
 	                                   ${e.pid.upper()},
@@ -56,10 +58,11 @@ ${e.pre}req_${e.id}(struct galv_rpc_clnt *client,
 
 	return galv_rpc_clnt_push_msg(msg);
 #if 'request' in $e
+
 drop:
-#end if
 	galv_rpc_clnt_msg_drop(msg);
 	return ret;
+#end if
 }
 
 #set $goto = 'fini' if 'response' in e and 'fini' in $e.response and $e.response.fini else 'error'
@@ -84,15 +87,7 @@ ${e.pre}clt_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event)
 
 	if (event) {
 		${assert_fn}(event < 0);
-#if 'response' in $e
-#if $e.response.ampersand
-		ret = cb(ctx, (uint32_t)-event, NULL);
-#else
-		ret = cb(ctx, (uint32_t)-event, 0);
-#end if
-#else
-		ret = cb(ctx, (uint32_t)-event);
-#end if
+		ret = event;
 		goto error;
 	}
 
@@ -121,6 +116,11 @@ ${e.pre}clt_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event)
 #else
 	ret = cb(ctx, status);
 #end if
+#if 'response' in $e and 'fini' in $e.response and $e.response.fini
+	${e.response.fini}(&param);
+#end if
+	galv_rpc_clnt_msg_drop(msg);
+	return 0;
 
 #if 'response' in $e and 'fini' in $e.response and $e.response.fini
 fini:
@@ -128,7 +128,15 @@ fini:
 #end if
 error:
 	galv_rpc_clnt_msg_drop(msg);
-	return ret;
+#if 'response' in $e
+#if $e.response.ampersand
+	return cb(ctx, (uint32_t)-ret, NULL);
+#else
+	return cb(ctx, (uint32_t)-ret, 0);
+#end if
+#else
+	return cb(ctx, (uint32_t)-ret);
+#end if
 }
 
 #end for
