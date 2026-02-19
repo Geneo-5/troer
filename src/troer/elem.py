@@ -552,15 +552,15 @@ class Lib(Doc):
 
     def resolveLibs(self, includeDir, args):
         for f in self.yaml.get('includes', []):
-            lastE = FileNotFoundError(f"{f['file']}.yml")
+            lastE = FileNotFoundError(f"{f.get('dir','')}{f['file']}.yml")
             versionSpec = SpecifierSet(f.get('version', ">=0"))
             for i in includeDir:
                 try:
-                    with open(f"{i}/{f['file']}.yml", "r") as y:
+                    with open(f"{i}/{f.get('dir','')}{f['file']}.yml", "r") as y:
                         spec = safe_load(y)
                 except:
                     try:
-                        with open(f"{i}/{f['file']}.yaml", "r") as y:
+                        with open(f"{i}/{f.get('dir','')}{f['file']}.yaml", "r") as y:
                             spec = safe_load(y)
                     except:
                         continue
@@ -572,7 +572,7 @@ class Lib(Doc):
                 f"{f} find with version {lib.version} but want {versionSpec}")
                     for l in lib.elems:
                         self.libs[f"{f['file']}/{l}"] = lib.elems[l]
-                    self.header.add(f.get('header', f"<{f['file']}.h>"))
+                    self.header.add(f.get('header', f"<{f.get('dir','')}{f['file']}.h>"))
                     lastE = None
                     break
                 except Exception as e:

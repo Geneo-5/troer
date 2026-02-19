@@ -125,6 +125,9 @@ properties:
         file:
           description: yaml troer file
           type: string
+        dir:
+          description: search dir
+          type: string
         header:
           description: Set include header file
           $ref: '#/$defs/header'
