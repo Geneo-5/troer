@@ -54,6 +54,32 @@ ${e.pre}req_${e.id}(struct galv_rpc_clnt *client,
 		    void * ctx)
 	__${pre}nonull(1, 2) __nothrow __warn_result;
 #end if
+
+#if 'request' in $e and 'response' in $e
+#set $nl = '1'
+#set $nl += ', 2' if $e.request.asterisk else ''
+#set $nl += ', 3'
+extern int
+${e.pre}rsync_${e.id}(struct galv_rpc_clnt *client,
+                    ${e.request.type} ${e.request.asterisk}request,
+                    ${e.response.type} *response)
+	__${pre}nonull(${nl}) __nothrow __warn_result;
+#elif 'request' in $e
+#set $nl = '1, 2' if $e.request.asterisk else 1
+extern int
+${e.pre}rsync_${e.id}(struct galv_rpc_clnt *client,
+                    ${e.request.type} ${e.request.asterisk}request)
+	__${pre}nonull(${nl}) __nothrow __warn_result;
+#elif 'response' in $e
+extern int
+${e.pre}rsync_${e.id}(struct galv_rpc_clnt *client,
+                    ${e.response.type} *response)
+	__${pre}nonull(1, 2) __nothrow __warn_result;
+#else
+extern int
+${e.pre}rsync_${e.id}(struct galv_rpc_clnt *client)
+	__${pre}nonull(1) __nothrow __warn_result;
+#end if
 #end for
 #for $e in $ntfy
 
@@ -131,6 +157,12 @@ ${pre}req_from_json(struct galv_rpc_clnt * client,
                     struct json_object * object,
                     ${pre}ans_json_fn * cb,
                     void * ctx)
+	__${pre}nonull(1, 2, 3) __nothrow __warn_result;
+
+extern int
+${pre}rsync_from_json(struct galv_rpc_clnt * client,
+                      struct json_object * request,
+                      struct json_object * response)
 	__${pre}nonull(1, 2, 3) __nothrow __warn_result;
 #end if
 ## ex: filetype=c

@@ -43,8 +43,8 @@ ${pre}ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
 	struct hed_rpc_clnt_msg *hed_msg = (struct hed_rpc_clnt_msg *)msg;
 	int ret;
 	uint32_t status;
-	${pre}ans_json_fn * cb = hed_msg->cb;
-	void *ctx = hed_msg->ctx;
+	${pre}ans_json_fn * cb = hed_msg->u.async.cb;
+	void *ctx = hed_msg->u.async.ctx;
 
 	obj = json_object_new_object();
 	if (!obj)
@@ -141,8 +141,8 @@ ${pre}req_from_json(struct galv_rpc_clnt * client,
 		return -ENOMEM;
 
 	hed_msg = (struct hed_rpc_clnt_msg *)msg;
-	hed_msg->cb = cb;
-	hed_msg->ctx = ctx;
+	hed_msg->u.async.cb = cb;
+	hed_msg->u.async.ctx = ctx;
 
 	if ((req_id < stroll_array_nr(enc_from_json)) && \
 	    enc_from_json[req_id]) {
@@ -161,4 +161,137 @@ drop:
 	galv_rpc_clnt_msg_drop(msg);
 	return ret;
 }
+
+static int
+${pre}sync_ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
+{
+	struct json_object *obj;
+	struct json_object *resp;
+	struct dpack_decoder *decoder = galv_rpc_clnt_msg_decoder(msg);
+	struct hed_rpc_clnt_msg *hed_msg = (struct hed_rpc_clnt_msg *)msg;
+	int ret;
+
+	obj = hed_msg->u.sync.response;
+	if (event) {
+		resp = json_object_new_int(-event);
+		if (!resp) {
+			ret = event;
+			goto drop;
+		}
+
+		ret = json_object_object_add(obj, "status", resp);
+		if (ret) {
+			json_object_put(resp);
+			goto drop;
+		}
+
+		ret = event;
+		goto drop;
+	}
+
+	resp = json_object_new_string(${rpc.pid}_to_str(msg->id));
+	if (!resp) {
+		ret = -ENOMEM;
+		goto drop;
+	}
+
+	ret = json_object_object_add(obj, "req", resp);
+	if (ret) {
+		json_object_put(resp);
+		goto drop;
+	}
+	ret = dpack_decode_uint32(decoder, hed_msg->u.sync.status);
+	if (ret)
+		goto drop;
+
+	resp = json_object_new_int((int)*hed_msg->u.sync.status);
+	if (!resp) {
+		ret = -ENOMEM;
+		goto drop;
+	}
+
+	ret = json_object_object_add(obj, "status", resp);
+	if (ret) {
+		json_object_put(resp);
+		goto drop;
+	}
+
+	if (!*hed_msg->u.sync.status) {
+		if ((msg->id < stroll_array_nr(dec_to_json)) && \
+		    dec_to_json[msg->id]) {
+			resp = dec_to_json[msg->id](decoder);
+			if (!resp) {
+				ret = -ENOMEM;
+				goto drop;
+			}
+
+			ret = json_object_object_add(obj, "resp", resp);
+			if (ret) {
+				json_object_put(resp);
+				goto drop;
+			}
+		}
+	}
+
+drop:
+	galv_rpc_clnt_msg_drop(msg);
+	if (ret)
+		*hed_msg->u.sync.status = (uint32_t)-ret;
+
+	return 0;
+}
+int
+${pre}rsync_from_json(struct galv_rpc_clnt * client,
+                      struct json_object * request,
+                      struct json_object * response)
+{
+	struct galv_rpc_clnt_msg  *msg;
+	struct hed_rpc_clnt_msg   *hed_msg;
+	json_object  *req_obj;
+	json_object  *param_obj;
+	${rpc.type}   req_id;
+	int ret;
+	uint32_t status;
+
+	if ((!json_object_object_get_ex(request, "req", &req_obj)) ||
+	    (json_object_get_type(req_obj) != json_type_string))
+		return -EINVAL;
+
+	ret = ${rpc.pid}_from_str(json_object_get_string(req_obj), &req_id);
+	if (ret)
+		return ret;
+
+	msg = galv_rpc_clnt_create_request(client, req_id,
+	                                   ${pre}sync_ans_to_json);
+	if (!msg)
+		return -ENOMEM;
+
+	hed_msg = (struct hed_rpc_clnt_msg *)msg;
+	hed_msg->u.sync.status = &status;
+	hed_msg->u.sync.response = response;
+
+	if ((req_id < stroll_array_nr(enc_from_json)) && \
+	    enc_from_json[req_id]) {
+		if (!json_object_object_get_ex(request, "param", &param_obj)) {
+			ret = -EINVAL;
+			goto drop;
+		}
+
+		ret = enc_from_json[req_id](galv_rpc_clnt_msg_encoder(msg), param_obj);
+		if (ret)
+			goto drop;
+	}
+
+	ret = galv_rpc_clnt_push_msg(msg);
+	if (ret)
+		return ret;
+
+	// TODO sync galv
+	return (int)status;
+
+drop:
+	galv_rpc_clnt_msg_drop(msg);
+	return ret;
+}
+
 ## ex: filetype=c

@@ -47,8 +47,8 @@ ${e.pre}req_${e.id}(struct galv_rpc_clnt *client,
 		return -ENOMEM;
 
 	hed_msg = (struct hed_rpc_clnt_msg *)msg;
-	hed_msg->cb = cb;
-	hed_msg->ctx = ctx;
+	hed_msg->u.async.cb = cb;
+	hed_msg->u.async.ctx = ctx;
 #if 'request' in $e
 
 	ret = ${e.request.encode}(galv_rpc_clnt_msg_encoder(msg), req);
@@ -80,8 +80,8 @@ ${e.pre}clt_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event)
 	int ret;
 	struct dpack_decoder *decoder = galv_rpc_clnt_msg_decoder(msg);
 	struct hed_rpc_clnt_msg *hed_msg = (struct hed_rpc_clnt_msg *)msg;
-	${e.pre}clt_${e.id}_fn *cb = hed_msg->cb;
-	void *ctx = hed_msg->ctx;
+	${e.pre}clt_${e.id}_fn *cb = hed_msg->u.async.cb;
+	void *ctx = hed_msg->u.async.ctx;
 
 	${assert_fn}(cb);
 
@@ -139,6 +139,106 @@ error:
 #end if
 }
 
+static int
+${e.pre}rsync_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event)
+{
+	${assert_fn}(msg);
+	${assert_fn}(msg->id == ${e.pid.upper()});
+	${assert_fn}(galv_rpc_clnt_msg_type(msg) == GALV_SESS_HEAD_REPLY_TYPE);
+
+	int ret;
+	struct dpack_decoder *decoder = galv_rpc_clnt_msg_decoder(msg);
+	struct hed_rpc_clnt_msg *hed_msg = (struct hed_rpc_clnt_msg *)msg;
+
+	${assert_fn}(cb);
+
+	if (event) {
+		${assert_fn}(event < 0);
+		*hed_msg->u.sync.status = (uint32_t)-event;
+		goto drop;
+	}
+
+	ret = dpack_decode_uint32(decoder, hed_msg->u.sync.status);
+#if 'response' in $e
+	if (ret) {
+		*hed_msg->u.sync.status = (uint32_t)-ret;
+		goto drop;
+	}
+
+	if (!*hed_msg->u.sync.status) {
+		ret = ${e.response.decode}(decoder, hed_msg->u.sync.response);
+		if (ret)
+			*hed_msg->u.sync.status = (uint32_t)-ret;
+	}
+#else
+	if (ret)
+		*hed_msg->u.sync.status = (uint32_t)-ret;
+#end if
+
+drop:
+	galv_rpc_clnt_msg_drop(msg);
+	return 0;
+}
+
+#if 'request' in $e and 'response' in $e
+extern int
+${e.pre}rsync_${e.id}(struct galv_rpc_clnt *client,
+                    ${e.request.type} ${e.request.asterisk}request,
+                    ${e.response.type} *response)
+#elif 'request' in $e
+extern int
+${e.pre}rsync_${e.id}(struct galv_rpc_clnt *client,
+                    ${e.request.type} ${e.request.asterisk}request)
+#elif 'response' in $e
+extern int
+${e.pre}rsync_${e.id}(struct galv_rpc_clnt *client,
+                    ${e.response.type} *response)
+#else
+extern int
+${e.pre}rsync_${e.id}(struct galv_rpc_clnt *client)
+#end if
+{
+	${assert_fn}(client);
+#if 'response' in $e
+	${assert_fn}(reponse);
+#end if
+
+	struct galv_rpc_clnt_msg *msg;
+	struct hed_rpc_clnt_msg  *hed_msg;
+	int                       ret;
+	uint32_t                  status;
+
+	msg = galv_rpc_clnt_create_request(client,
+	                                   ${e.pid.upper()},
+	                                   ${e.pre}rsync_dispatch_${e.id});
+	if (!msg)
+		return -ENOMEM;
+
+	hed_msg = (struct hed_rpc_clnt_msg *)msg;
+	hed_msg->u.sync.status = &status;
+#if 'response' in $e
+	hed_msg->u.sync.response = response;
+#end if
+#if 'request' in $e
+
+	ret = ${e.request.encode}(galv_rpc_clnt_msg_encoder(msg), request);
+	if (ret)
+		goto drop;
+#end if
+
+	ret = galv_rpc_clnt_push_msg(msg);
+	if (ret)
+		return ret;
+
+	// TODO sync galv
+	return (int)status;
+#if 'request' in $e
+
+drop:
+	galv_rpc_clnt_msg_drop(msg);
+	return ret;
+#end if
+}
 #end for
 #for $e in $rpc.evnt
 #if 'request' in $e
