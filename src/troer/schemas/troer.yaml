@@ -9,9 +9,7 @@ $defs:
     type: string
     pattern: ^[a-zA-Z]([a-zA-Z0-9_-]*[a-zA-Z0-9]+)?$
   name_enum:
-    type: [ string, integer ]
-    pattern: ^[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9]+)?$
-    min: 0
+    type: [ string, number ]
   prefix:
     type: string
     pattern: ^[a-zA-Z]([a-zA-Z0-9_]+)?$
