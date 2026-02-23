@@ -131,6 +131,8 @@ class Elem(Doc):
         self.tmpl      = None
         self.lib       = lib
         self.assert_fn = lib.assert_fn
+        if isinstance(self.yaml['name'], int):
+            self.yaml['name'] = str(self.yaml['name'])
         self.id        = self.yaml['name'].replace("-", "_")
         self.pre       = self.lib.pre
         self.pid       = self.pre + self.id
