@@ -2,28 +2,13 @@
  * Minimum size in bytes of an ${type} serialized according to
  * the @rstsubst{MessagePack int format}.
  */
-\#define ${pid.upper()}_PACKED_SIZE_MIN $defineMIN()
+\#define ${pid.upper()}_PACKED_SIZE_MIN DPACK_BIN_SIZE(STROLL_FBMAP_WORD_NR(${size}) * 4)
 
 /**
  * Maximum size in bytes of an ${type} serialized according to
  * the @rstsubst{MessagePack int format}.
  */
-\#define ${pid.upper()}_PACKED_SIZE_MAX $defineMAX()
-
-${type} {
-#for $e in $entries
-#if 'repeated' in $e
-#if isinstance(e.repeated, (int, str))
-	${e.type} ${e.id}[${e.repeated}];
-#else
-	size_t     ${e.id}_nb;
-	${e.type} *${e.id};
-#end if
-#else
-	${e.type} ${e.id};
-#end if
-#end for
-};
+\#define ${pid.upper()}_PACKED_SIZE_MAX ${pid.upper()}_PACKED_SIZE_MIN
 #if $app_check
 
 /**
@@ -36,7 +21,7 @@ ${type} {
  * @retval -EINVAL Invalid value
  */
 extern int
-${app_check}(const ${type} * value)
+${app_check}(${type} *value)
 __${pre}nonull(1) __warn_result;
 #end if
 
@@ -49,9 +34,17 @@ __${pre}nonull(1) __warn_result;
  * @retval 0       Success
  * @retval -EINVAL Invalid value
  */
-extern int
-${check}(const ${type} * value)
-__${pre}nonull(1) __warn_result ${deprecated};
+static inline int __warn_result ${deprecated}
+#if $app_check
+${check}(${type} * value)
+{
+	return ${app_check}(value);
+#else
+${check}(${type} * value __unused)
+{
+	return 0;
+#end if
+};
 
 /**
  * Decode a ${type} encoded according to the MessagePack format
@@ -82,10 +75,24 @@ __${pre}nonull(1) __warn_result ${deprecated};
  * - dpack_decoder_init_skip_buffer()
  * - ${init}()
  */
-extern int
+static inline int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
-__${pre}nonull(1, 2) __nothrow __warn_result ${deprecated};
+{
+	${assert_fn}(decoder);
+	${assert_fn}(value->nr == ${size});
+	${assert_fn}(value->bits);
+
+	int ret;
+
+	ret = dpack_decode_bincpy_equ(decoder,
+	                              STROLL_FBMAP_WORD_NR(${size}) * 4,
+	                              (uint8_t *)value->bits);
+	if (ret)
+		return ret;
+
+	return ${check}(value);
+}
 
 /**
  * Encode an ${type} according to the MessagePack format
@@ -111,10 +118,19 @@ __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated};
  * - dpack_encoder_init_buffer()
  * - ${init}()
  */
-extern int
+static inline int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${encode}(struct dpack_encoder * encoder,
 	  const ${type} * value)
-__${pre}nonull(1, 2) __nothrow __warn_result ${deprecated};
+{
+	${assert_fn}(encoder);
+	${assert_fn}(value->nr == ${size});
+	${assert_fn}(value->bits);
+	${assert_fn}(${check}(value) == 0);
+
+	return dpack_encode_bin(encoder,
+	                        (uint8_t *)value->bits,
+	                        STROLL_FBMAP_WORD_NR(${size}) * 4);
+}
 
 #if $json
 /**
@@ -181,87 +197,19 @@ __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated};
  * @return an arrno like error code
  * @retval 0         Success
  */
-extern int
+static inline int __${pre}nonull(1) __warn_result ${deprecated}
 ${init}(${type} * value)
- __${pre}nonull(1) __warn_result ${deprecated};
+{
+	return stroll_fbmap_init_clear(value, ${size});
+}
 
 /*
  * Finalize an empty ${type}_.
  * @param[inout] value Length-Value String
  */
-extern void
+static inline void __${pre}nonull(1) ${deprecated}
 ${fini}(${type} * value)
- __${pre}nonull(1) ${deprecated};
-#for $e in $entries
-#if 'repeated' in $e
-
-static inline size_t  __${pre}nonull(1) ${deprecated}
-#set unused = " __unused" if isinstance(e.repeated, (int, str)) else ""
-${pid}_get_${e.id}_nb(const ${type} * value${unused})
 {
-	${assert_fn}(value);
-
-#if isinstance(e.repeated, (int, str))
-	return ${e.repeated};
-#else
-	return value->${e.id}_nb;
-#end if
+	stroll_fbmap_fini(value);
 }
-
-static inline ${e.type}${e.asterisk} __${pre}nonull(1) ${deprecated}
-${pid}_get_${e.id}(const ${type} * value, unsigned int idx)
-{
-	${assert_fn}(value);
-#if isinstance(e.repeated, (int, str))
-	${assert_fn}(idx < ${e.repeated});
-#else
-	${assert_fn}(idx < value->${e.id}_nb);
-#end if
-
-STROLL_IGNORE_WARN("-Wcast-qual")
-	return (${e.type}${e.asterisk})${e.ampersand}value->${e.id}[idx];
-STROLL_RESTORE_WARN
-}
-#if isinstance(e.repeated, (int, str))
-#if not e.asterisk
-
-static inline void __${pre}nonull(1) ${deprecated}
-${pid}_set_${e.id}(${type} * data, unsigned int idx, ${e.type} value)
-{
-	${assert_fn}(data);
-	${assert_fn}(idx < ${e.repeated});
-
-	data->${e.id}[idx] = value;
-}
-#end if
-#else
-
-extern  ${e.type} *
-${pid}_append_${e.id}(${type} * data)
-	__${pre}nonull(1) ${deprecated};
-#end if
-#else
-
-static inline ${e.type}${e.asterisk} __${pre}nonull(1) ${deprecated}
-${pid}_get_${e.id}(const ${type} * value)
-{
-	${assert_fn}(value);
-
-STROLL_IGNORE_WARN("-Wcast-qual")
-	return (${e.type}${e.asterisk})${e.ampersand}value->${e.id};
-STROLL_RESTORE_WARN
-}
-#if not e.asterisk
-
-static inline void __${pre}nonull(1) ${deprecated}
-${pid}_set_${e.id}(${type} * data, ${e.type} value)
-{
-	${assert_fn}(data);
-
-	data->${e.id} = value;
-}
-#end if
-#end if
-#end for
-
 ## ex: filetype=c

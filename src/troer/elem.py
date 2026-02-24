@@ -160,7 +160,7 @@ class Elem(Doc):
         except:
             return ""
         return Template(tmpl, self)
-            
+
     def getDefinition(self, sub = ''):
         try:
             tmpl = read_text(templates, f"{self.tmpl}{sub}.c.tmpl")
@@ -277,6 +277,19 @@ class F64Elem(Elem):
         self.jsonc = 'double'
         lib.header.add("<dpack/scalar.h>")
         lib.header.add("<math.h>")
+
+class BmapElem(Elem):
+    def __init__(self, lib, yaml):
+        super().__init__(lib, yaml)
+        self.tmpl  = 'fbmap'
+        self.type = 'struct stroll_fbmap'
+        self.ampersand = '&'
+        self.asterisk  = '*'
+        self.init  = f"{self.pre}init_{self.id}"
+        self.fini  = f"{self.pre}fini_{self.id}"
+        lib.header.add("<dpack/bin.h>")
+        lib.header.add("<stroll/array.h>")
+        lib.header.add("<stroll/fbmap.h>")
 
 class StrElem(Elem):
     def __init__(self, lib, yaml):
@@ -527,7 +540,7 @@ class Lib(Doc):
         self.elems     = OrderedDict()
         self.libs      = {}
         self.kconfig   = False
-    
+
         self.resolveLibs(args.includeDir, args)
 
         self.header.add("<errno.h>")

@@ -22,7 +22,7 @@ ${decode}_array_${e.id}_to_json(struct dpack_decoder * decoder,
 
 	obj = ${e.decode}_to_json(decoder);
 	if (!obj)
-		return -1;
+		return -ENOMEM;
 
 	return json_object_array_put_idx(object, id, obj);
 }
@@ -112,7 +112,7 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 	if ((nb < ${e.repeated.min}) || (nb > ${e.repeated.max}))
 		return -EINVAL;
 #end if
-	
+
 	ret = dpack_array_begin_encode(encoder, (unsigned int)nb);
 	if (ret)
 		return ret;

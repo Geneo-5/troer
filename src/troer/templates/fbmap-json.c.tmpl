@@ -1,0 +1,94 @@
+struct json_object *
+${decode}_to_json(struct dpack_decoder * decoder)
+{
+	struct json_object *object;
+	struct stroll_fbmap map;
+	struct stroll_fbmap_iter iter;
+	int ret;
+	int i;
+
+	ret = stroll_fbmap_init_clear(&map, ${size});
+	if (ret)
+		return NULL;
+
+	object = json_object_new_array();
+	if (!object)
+		goto fini;
+
+	ret = ${decode}(decoder, &map);
+	if (ret)
+		goto put;
+
+	stroll_fbmap_foreach_set(&iter, &map, i) {
+		struct json_object *obj;
+
+		obj = json_object_new_int(i);
+		if (!obj)
+			goto put;
+
+		ret = json_object_array_add(object, obj);
+		if (ret) {
+			json_object_put(obj);
+			goto put;
+		}
+	}
+	stroll_fbmap_fini(&map);
+	return object;
+
+put:
+	json_object_put(object);
+fini:
+	stroll_fbmap_fini(&map);
+	return NULL;
+}
+
+int
+${encode}_from_json(struct dpack_encoder * encoder,
+		    struct json_object * object)
+{
+	${assert_fn}(encoder);
+	${assert_fn}(object);
+	
+	int ret;
+	struct stroll_fbmap map;
+
+	if (!json_object_is_type(object, json_type_array))
+		return -EINVAL;
+
+	ret = stroll_fbmap_init_clear(&map, ${size});
+	if (ret)
+		return ret;
+
+	for (unsigned int i = 0; i < json_object_array_length(object); i++) {
+		struct json_object *tmp;
+		int bit;
+
+		tmp = json_object_array_get_idx(object, i);
+		if (!tmp) {
+			ret = -EINVAL;
+			goto error;
+		}
+
+		errno = 0;
+		bit = json_object_get_int(tmp);
+		if (errno) {
+			ret = -errno;
+			goto error;
+		}
+		if ((bit < 0) || (bit >= ${size})) {
+			ret = -EINVAL;
+			goto error;
+		}
+		stroll_fbmap_set(&map, (unsigned int)bit);
+	}
+
+	ret = ${check}(&map);
+	if (ret)
+		goto error;
+
+	ret = ${encode}(encoder, &map);
+error:
+	stroll_fbmap_fini(&map);
+	return ret;
+}
+## ex: filetype=c
