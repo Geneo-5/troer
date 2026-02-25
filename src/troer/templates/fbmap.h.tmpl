@@ -88,7 +88,7 @@ ${decode}(struct dpack_decoder * decoder,
 	ret = dpack_decode_bincpy_equ(decoder,
 	                              STROLL_FBMAP_WORD_NR(${size}) * 4,
 	                              (uint8_t *)value->bits);
-	if (ret)
+	if (ret < 0)
 		return ret;
 
 	return ${check}(value);
