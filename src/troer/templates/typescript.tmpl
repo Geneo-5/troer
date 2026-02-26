@@ -1,55 +1,35 @@
-#from troer.elem import *
+#for $e in $enum
 
-#for $e in $type:
-
-#if isinstance($e, StructElem)
-type ${e.pid} = {
+export enum ${e.pid} {
 #for $l in $e.entries
-#if isinstance($l, StrElem)
-#set $t = "string"
-#elif isinstance($l, (U8Elem, U16Elem, U32Elem, U64Elem, S8Elem, S16Elem, S32Elem, S64Elem, F32Elem, F64Elem))
-#set $t = "number"
-#elif isinstance($l, BmapElem)
-#set $t = "Array<number>"
-#elif isinstance($l, BoolElem)
-#set $t = "boolean"
-#elif isinstance($l, RefElem)
-#if isinstance($l.elem, EnumElem)
-#set $t = "enum " + $l.elem.pid
+	${l.pid} = "${l.name}",
+#end for
+};
+#end for
+
+export enum rpc {
+#for $r in $rpc
+	${r[0]} = "${r[1]}",
+#end for
+};
+#for $e in $struct
+
+export type ${e.pid} = {
+#for $l in $e.pids
+#if 'repeated' in $l[0]
+	${l[0].id}: Array<${l[1]}>;
 #else
-#set $t = $l.elem.pid
-#end if
-#else
-#set $t = "any"
-#end if
-#if 'repeated' in $l
-	${l.id}: Array<$t>;
-#else
-	${l.id}: $t;
+	${l[0].id}: ${l[1]};
 #end if
 #end for
 };
-#elif isinstance($e, EnumElem)
-enum ${e.pid} = {
-#for $l in $e.entries
-	${l.pid.upper()} = "${l.name}",
-#end for
-};
-#elif isinstance($e, StrElem)
-type ${e.pid} = string;
-#elif isinstance($e, BmapElem)
-type ${e.pid} = Array<number>;
-#elif isinstance($e, BoolElem)
-type ${e.pid} = boolean;
-#elif isinstance($e, (U8Elem, U16Elem, U32Elem, U64Elem, S8Elem, S16Elem, S32Elem, S64Elem, F32Elem, F64Elem))
-type ${e.pid} = number;
-#else
-type ${e.pid} = any;
-#end if
 #end for
 #for $r in $rpc
 
-type ${r[0]} = ${r[1]};
+type rpc_${r[0]}_req = {req:rpc.${r[0]}, param:${r[2]}};
+export type ${r[0]} = ${r[3]};
 #end for
-## ex: filetype=c
 
+export type rpc_req = #slurp
+#echo ' |\n\t'.join([f"rpc_{r[0]}_req" for r in $rpc]) + ";"
+## ex: filetype=typescript

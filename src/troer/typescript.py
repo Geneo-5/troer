@@ -1,39 +1,83 @@
-from .elem import Renderer, StructElem, RefElem
 from collections import OrderedDict
+from .elem import *
 
 class TypeScript(Renderer):
     def __init__(self, lib):
         self.lib = lib
         if lib.schema != "exchange":
             raise Exception(f"Only exchange schema supported")
-        self.type = OrderedDict()
+        self.struct = OrderedDict()
+        self.enum   = OrderedDict()
         tmp = []
         self.rpc= []
         for e in lib.rpc["entries"]:
+            cmd = []
+            cmd.append(self.name2id(e['name']))
+            cmd.append(e['name'])
             if "request" in e:
                 r = lib.getElem(e["request"][1:])
-                if isinstance(r, RefElem):
+                while isinstance(r, RefElem):
                     r = r.elem
                 tmp.append(r)
-                self.rpc.append((f"req_{self.name2id(e['name'])}",r.pid))
+                cmd.append(self.paramType(r))
+            else:
+                cmd.append('undefined')
+
             if "response" in e:
                 r = lib.getElem(e["response"][1:])
-                if isinstance(r, RefElem):
+                while isinstance(r, RefElem):
                     r = r.elem
                 tmp.append(r)
-                self.rpc.append((f"res_{self.name2id(e['name'])}", r.pid))
+                cmd.append(self.paramType(r))
+            else:
+                cmd.append('void')
+            self.rpc.append(cmd)
+
+        seen = []
         while(tmp):
             t = tmp.pop(0)
-            if t.pid in self.type:
+            if t.pid in seen:
                 continue
 
-            self.type[t.pid] = t
+            seen.append(t.pid)
+            if isinstance(t, RefElem):
+                print(t.pid, self.paramType(t))
+                tmp.append(t.elem)
+                continue
+
+            if isinstance(t, EnumElem):
+                if t.pid in self.enum:
+                    continue
+                self.enum[t.pid] = t
+
             if isinstance(t, StructElem):
+                if t.pid in self.struct:
+                    continue
+                self.struct[t.pid] = t
+                t.pids = []
                 for e in t.entries:
                     if isinstance(e, RefElem):
                         tmp.append(e.elem)
-        self.type = reversed(list(self.type.values()))
+                    t.pids.append((e, self.paramType(e)))
+        
+        self.enum   = list(self.enum.values())
+        self.struct = list(self.struct.values())
+
+    def paramType(self, p):
+        if isinstance(p, StrElem):
+            return "string"
+        elif isinstance(p, (U8Elem, U16Elem, U32Elem, U64Elem, S8Elem, S16Elem, S32Elem, S64Elem, F32Elem, F64Elem)):
+            return "number"
+        elif isinstance(p, BmapElem):
+            return "Array<number>"
+        elif isinstance(p, BoolElem):
+            return "boolean"
+        elif isinstance(p, RefElem):
+            return self.paramType(p.elem)
+        else:
+            return p.pid
 
     def rendering(self, outputDir, indent=None):
-        self._rendering(outputDir, indent, 'typescript', 'types.tsx')
+        print(f"  GEN {outputDir}/{self.lib.name}.tsx")
+        self._rendering(outputDir, indent, 'typescript', f"{self.lib.name}.tsx")
 

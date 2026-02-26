@@ -30,7 +30,7 @@ def cli():
     parser.add_argument('spec', type=str)
     parser.add_argument('outputDir', type=str,
             help='Save files generated in Output directory.')
-    parser.add_argument('-I', '--include', dest='includeDir', type=str, 
+    parser.add_argument('-I', '--include', dest='includeDir', type=str,
             action='append', default=['.'],
             help='Path to include directory. Can add multiple time.')
     parser.add_argument('--typescript', action=BooleanOptionalAction,
