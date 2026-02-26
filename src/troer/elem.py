@@ -88,6 +88,12 @@ class Renderer():
             c += len(e) + 1
         return s[:-1] + end
 
+    def name2id(self, name):
+        id = sub(r'\W', '_', name)
+        id = sub(r'\A_*', '', id)
+        id = sub(r'_*\Z', '', id)
+        return id
+
 class Doc(Renderer):
     def __init__(self, yaml):
         self.yaml = yaml
@@ -133,9 +139,7 @@ class Elem(Doc):
         self.assert_fn = lib.assert_fn
         if not isinstance(self.yaml['name'], str):
             self.yaml['name'] = str(self.yaml['name'])
-        self.id        = sub(r'\W', '_', self.yaml['name'])
-        self.id        = sub(r'\A_*', '', self.id)
-        self.id        = sub(r'_*\Z', '', self.id)
+        self.id        = self.name2id(self.yaml['name'])
         self.pre       = self.lib.pre
         self.pid       = self.pre + self.id
         self.json      = lib.json
@@ -445,6 +449,8 @@ class RefElem(Elem):
     def __init__(self, elem, lib, yaml):
         super().__init__(lib, yaml)
         self.elem        = lib.getElem(elem)
+        while isinstance(self.elem, RefElem):
+            self.elem = self.elem.elem
         self.type        = self.elem.type
         self.decode      = self.elem.decode
         self.encode      = self.elem.encode

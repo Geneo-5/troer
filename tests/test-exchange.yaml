@@ -27,7 +27,6 @@ declarations:
 rpc:
   -
     name: add
-    value: 0
     type: request
     roles:
       - $role_all

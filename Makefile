@@ -112,11 +112,18 @@ $(DESTDIR)/bin/test_%: tests/test-%.yaml $(src) | $(BUILDDIR)/test-% \
 test-%: $(DESTDIR)/bin/test_%
 	@:
 
+
 run-%: $(DESTDIR)/bin/test_%
 	@$(CURDIR)/scripts/run.sh $*
 
 afl-%: $(DESTDIR)/bin/test_%
 	@$(CURDIR)/scripts/afl.sh $*
+
+.PHONY: test-ts
+test-ts: | $(BUILDDIR)/troer-exchange-ts
+	@echo ====== Test TypeScript
+	@troer --typescript --include tests tests/test-typescript.yaml $(BUILDDIR)/troer-exchange-ts
+	
 
 install: venv dpack stroll utils galv hed elog $(LIBDESOCK)
 

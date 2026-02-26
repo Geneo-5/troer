@@ -1,0 +1,39 @@
+schema: exchange
+name: test-exchange
+version: 0.0.1
+doc: Test exchange schema and idl
+prefix: ts_
+
+includes:
+  - file: test-exchange
+  - file: test-lib
+  - file: test-storage
+
+rpc:
+  -
+    name: add
+    type: request
+    roles:
+      - $test-exchange/role_all
+    request: $test-exchange/tuple
+    response: $test-exchange/int
+  -
+    name: add-afl
+    type: request
+    roles:
+      - $test-exchange/role_all
+    request: $test-storage/tuple
+    response: $test-lib/afl
+  -
+    name: add-req
+    type: request
+    roles:
+      - $test-exchange/role_all
+    request: $test-lib/afl
+  -
+    name: add-ref
+    type: request
+    roles:
+      - $test-exchange/role_all
+    response: $test-lib/afl_ref
+

@@ -5,6 +5,7 @@ from argparse import ArgumentParser, BooleanOptionalAction
 from subprocess import run
 from .elem import loadTroer
 from .makefile import Makefile
+from .typescript import TypeScript
 from re import sub
 from traceback import print_exc
 
@@ -32,6 +33,8 @@ def cli():
     parser.add_argument('-I', '--include', dest='includeDir', type=str, 
             action='append', default=['.'],
             help='Path to include directory. Can add multiple time.')
+    parser.add_argument('--typescript', action=BooleanOptionalAction,
+            default=False, help='generate typescript type for exchange file')
     parser.add_argument('-j', '--json', action=BooleanOptionalAction,
             default=False, help='add json to/from dpack encoder/decoder')
     parser.add_argument('-m', '--makefile', default='no',
@@ -52,6 +55,10 @@ def cli():
     args = parser.parse_args()
     try:
         troer = loadTroer(args.spec, args)
+        if args.typescript:
+            ts = TypeScript(troer)
+            ts.rendering(args.outputDir)
+            return EX_OK
         if args.makefile != 'no':
             makefile = Makefile(troer, args.makefile)
             makefile.rendering(args.outputDir)
