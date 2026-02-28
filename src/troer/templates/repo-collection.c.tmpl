@@ -28,7 +28,6 @@ ${parent.pid}_update_${id}(struct hed_repo *repo,
                            const ${object.type} ${object.asterisk}value)
 {
 	${assert_fn}(repo);
-	${assert_fn}(repo->buf);
 	${assert_fn}(repo->env);
 	${assert_fn}(repo->txn);
 #if $key.asterisk
@@ -67,7 +66,6 @@ ${parent.pid}_get_${id}(struct hed_repo *repo,
                         ${object.type} *value)
 {
 	${assert_fn}(repo);
-	${assert_fn}(repo->buf);
 	${assert_fn}(repo->env);
 	${assert_fn}(repo->txn);
 #if $key.asterisk
@@ -103,7 +101,6 @@ ${parent.pid}_del_${id}(struct hed_repo *repo,
                         const ${key.type} ${key.asterisk}key)
 {
 	${assert_fn}(repo);
-	${assert_fn}(repo->buf);
 	${assert_fn}(repo->env);
 	${assert_fn}(repo->txn);
 #if $key.asterisk

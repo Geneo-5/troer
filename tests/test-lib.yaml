@@ -102,4 +102,26 @@ declarations:
         name: fbmap
         type: bmap
         size: 100
+      -
+        name: flags
+        type: flags
+        bits: 4
+        entries:
+          - name: f-1
+            value: 0x01
+          - name: f-2
+            value: 0x02
+          - name: f-3
+            value: 0x04
+          - name: f-4
+            value: 0x08
+          - name: f-5
+            value: LIB_F_1 | LIB_F_2
+          - name: f-6
+            value: LIB_F_3 | LIB_F_4
+          - name: f-7
+            value: LIB_F_5 | LIB_F_4
+            
+
+
 

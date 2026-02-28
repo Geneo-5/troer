@@ -360,6 +360,30 @@ class EnumElem(Elem):
                 raise Exception(f"{name} early exist")
             self.lib.elems[name] = e
 
+class FlagsElem(EnumElem):
+    def __init__(self, lib, yaml):
+        super().__init__(lib, yaml)
+        lib.header.add("<dpack/scalar.h>")
+        lib.header.add("<stroll/bmap.h>")
+        self.tmpl  = 'flags'
+        self.init  = f"{self.pre}init_{self.id}"
+        if self.yaml['bits'] <= 32:
+            self.type = 'uint32_t'
+            self.dpack = 'uint32'
+            self.mask = f"UINT32_C(0x{(1 << 32) - (1 << self.yaml['bits']):08X})"
+            self.stroll = '32'
+        else:
+            self.type = 'uint64_t'
+            self.dpack = 'uint64'
+            self.mask = f"UINT64_C(0x{(1 << 64) - (1 << self.yaml['bits']):016X})"
+            self.stroll = '64'
+        for e in self.entries:
+            if isinstance(e.value, int):
+                if self.yaml['bits'] <= 32:
+                    e.value = f"UINT32_C(0x{e.value:08X})"
+                else:
+                    e.value = f"UINT64_C(0x{e.value:016X})"
+
 class RpcEntry(Elem):
     def __init__(self, lib, yaml):
         super().__init__(lib, yaml)

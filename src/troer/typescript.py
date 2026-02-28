@@ -41,27 +41,31 @@ class TypeScript(Renderer):
 
             seen.append(t.pid)
             if isinstance(t, RefElem):
-                print(t.pid, self.paramType(t))
                 tmp.append(t.elem)
-                continue
 
-            if isinstance(t, EnumElem):
-                if t.pid in self.enum:
-                    continue
-                self.enum[t.pid] = t
-
+            self.checkEnum(t)
             if isinstance(t, StructElem):
                 if t.pid in self.struct:
                     continue
                 self.struct[t.pid] = t
                 t.pids = []
                 for e in t.entries:
+                    self.checkEnum(e)
                     if isinstance(e, RefElem):
                         tmp.append(e.elem)
                     t.pids.append((e, self.paramType(e)))
         
         self.enum   = list(self.enum.values())
         self.struct = list(self.struct.values())
+
+    def checkEnum(self, elem):
+        if not isinstance(elem, ( EnumElem, FlagsElem )):
+            return
+
+        if elem.pid in self.enum:
+            return
+
+        self.enum[elem.pid] = elem
 
     def paramType(self, p):
         if isinstance(p, StrElem):
@@ -70,6 +74,8 @@ class TypeScript(Renderer):
             return "number"
         elif isinstance(p, BmapElem):
             return "Array<number>"
+        elif isinstance(p, FlagsElem):
+            return f"Array<{p.pid}>"
         elif isinstance(p, BoolElem):
             return "boolean"
         elif isinstance(p, RefElem):

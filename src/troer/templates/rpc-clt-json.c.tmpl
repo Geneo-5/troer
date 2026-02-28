@@ -47,13 +47,17 @@ ${pre}ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
 	void *ctx = hed_msg->u.async.ctx;
 
 	obj = json_object_new_object();
-	if (!obj)
+	if (!obj){
+		ret = -ENOMEM;
 		goto drop;
+	}
 	
 	if (event) {
 		resp = json_object_new_int(-event);
-		if (!resp)
+		if (!resp) {
+			ret = -ENOMEM;
 			goto error;
+		}
 
 		ret = json_object_object_add(obj, "status", resp);
 		if (ret) {
@@ -65,8 +69,10 @@ ${pre}ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
 	}
 
 	resp = json_object_new_string(${rpc.pid}_to_str(msg->id));
-	if (!resp)
+	if (!resp) {
+		ret = -ENOMEM;
 		goto error;
+	}
 
 	ret = json_object_object_add(obj, "req", resp);
 	if (ret) {
@@ -78,8 +84,10 @@ ${pre}ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
 		goto error;
 
 	resp = json_object_new_int((int)status);
-	if (!resp)
+	if (!resp) {
+		ret = -ENOMEM;
 		goto error;
+	}
 
 	ret = json_object_object_add(obj, "status", resp);
 	if (ret) {
@@ -91,8 +99,10 @@ ${pre}ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
 		if ((msg->id < stroll_array_nr(dec_to_json)) && \
 		    dec_to_json[msg->id]) {
 			resp = dec_to_json[msg->id](decoder);
-			if (!resp)
+			if (!resp) {
+				ret = -ENOMEM;
 				goto error;
+			}
 
 			ret = json_object_object_add(obj, "resp", resp);
 			if (ret) {

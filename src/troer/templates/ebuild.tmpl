@@ -82,6 +82,9 @@ lib@{lib.name}.a-objs     += static/@{lib.name}-json.o
 @@if @lib.schema == 'exchange'
 lib@{lib.name}.a-objs     += static/@{lib.name}-srv.o
 lib@{lib.name}.a-objs     += static/@{lib.name}-clt.o
+@@if @lib.json
+lib@{lib.name}.a-objs     += static/@{lib.name}-clt-json.o
+@@end if
 @@end if
 lib@{lib.name}.a-cflags    = $(common-cflags)
 lib@{lib.name}.a-pkgconfig =@{pkgconfig}

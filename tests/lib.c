@@ -39,8 +39,6 @@ static void handler(int sig __unused)
 static int
 pack_to_file(char * file)
 {
-	struct dpack_decoder_buffer dec_buf;
-	struct dpack_decoder * dec = (struct dpack_decoder *)&dec_buf;
 	struct dpack_encoder_buffer enc_buf;
 	struct dpack_encoder * enc = (struct dpack_encoder *)&enc_buf;
 	struct lib_afl        lib = {0};
@@ -87,6 +85,9 @@ pack_to_file(char * file)
 		goto error;
 	}
 #else
+	struct dpack_decoder_buffer dec_buf;
+	struct dpack_decoder * dec = (struct dpack_decoder *)&dec_buf;
+
 	dpack_decoder_init_buffer(&dec_buf, out, dpack_encoder_space_used(enc));
 
 	obj = lib_dec_afl_to_json(dec);

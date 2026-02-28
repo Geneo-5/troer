@@ -56,7 +56,7 @@ LIBDESOCK       := $(LIBDESOCKBDIR)/libdesock.so
 
 export EBUILDDIR
 
-all: test-lib test-exchange test-storage
+all: test-lib test-exchange test-clnt test-storage test-typescript test-ts
 
 export PATH := $(VENV)/bin:$(DESTDIR)/usr/local/bin:$(PATH)
 export LD_LIBRARY_PATH := $(DESTDIR)/usr/local/lib
@@ -75,6 +75,8 @@ $(subst l,L,$(subst m,M,$(subst n,N,$(subst o,O,$(subst p,P,$(subst q,Q,\
 $(subst r,R,$(subst s,S,$(subst t,T,$(subst u,U,$(subst v,V,$(subst w,W,\
 $(subst x,X,$(subst y,Y,$(subst z,Z,$(1))))))))))))))))))))))))))))
 endef
+
+LDFLAGS-typescript = -l:libtest-exchange.a -l:libtest-lib.a -l:libtest-storage.a
 
 src := Makefile $(shell find src/ tests/ -type f) $(wildcard $(DESTDIR)/usr/local/lib/*.a)
 
@@ -106,6 +108,7 @@ $(DESTDIR)/bin/test_%: tests/test-%.yaml $(src) | $(BUILDDIR)/test-% \
 		$(EXTRA_LDFLAGS) -l:libdpack.a -l:libstroll.a -l:libjson-c.a \
 		-l:libutils.a -l:libgalv.a -l:libhed.a -letux_timer_heap \
 		-lelog -l:liblmdb.a -l:libgalv_clnt.a -l:libtest-$*.a \
+		$(LDFLAGS-$(*)) \
 		-o $@ \
 		tests/$*.c
 

@@ -9,6 +9,69 @@
  * the @rstsubst{MessagePack int format}.
  */
 \#define ${pid.upper()}_PACKED_SIZE_MAX DPACK_${dpack.upper()}_SIZE_MAX
+
+/**
+ * Number of elements in the ${type}
+ */
+#set $NB=len($entries)
+\#define ${pid.upper()}_NB ${NB}
+
+/**
+ * $getDoc()
+ **/
+#for $e in $entries
+#if $e.hasDoc()
+	/**
+	 * $e.getDoc(8)
+ 	 */
+#end if
+\#define ${e.pid.upper()} $e.value
+#end for
+
+/**
+ * Convert ${type} to string list format
+ *
+ * @param[in] value The value to convert
+ *
+ * @return a const string
+ * @return NULL Invalid value
+ */
+extern ssize_t
+${pid}_to_str(const char ** buf, size_t nr, ${type} value)
+__warn_result ${deprecated};
+
+/**
+ * Search a string format of ${type}
+ *
+ * @param[in]  str   The string to research
+ * @param[out] value The value founding
+ *
+ * @return an errno like error code
+ * @retval 0       Success
+ * @retval -EINVAL Invalid value
+ */
+extern int
+${pid}_from_str(const char *str, ${type} *value)
+ __${pre}nonull(1, 2) __warn_result ${deprecated};
+
+/**
+ * Copy to array all pointer constant string of ${type}
+ *
+ * @param[in] buf The buffer to copy
+ * @param[in] nr  The buffer size
+ *
+ * @return number of elements added
+ *
+ * @warning
+ * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
+ *   disabled and @p nr is lower than #${pid.upper()}_NB value, the
+ *   result is undefined. An assertion is triggered otherwise.
+ *
+ * @see ${pid.upper()}_NB
+ */
+extern ssize_t
+${pid}_dump_str(const char ** buf, size_t nr)
+ __${pre}nonull(1) ${deprecated};
 #if $app_check
 
 /**
@@ -21,12 +84,12 @@
  * @retval -EINVAL Invalid value
  */
 extern int
-${app_check}(const ${type} value)
+${app_check}(${type} value)
 __${pre}nonull(1) __warn_result;
 #end if
 
 /**
- * Check if input is valid ${type}
+ * Check if input is valid enum ${pid}
  *
  * @param[in] value The value to test
  *
@@ -35,9 +98,11 @@ __${pre}nonull(1) __warn_result;
  * @retval -EINVAL Invalid value
  */
 static inline int __warn_result ${deprecated}
-${check}(const ${type} value)
+${check}(${type} value)
 {
-	if(stroll_bmap_test_mask${stroll}(value, ${mask}))
+	const char *str[${pid.upper()}_NB];
+
+	if (${pid}_to_str(str, ${pid.upper()}_NB, value) < 0)
 		return -EINVAL;
 
 #if $app_check
@@ -48,7 +113,7 @@ ${check}(const ${type} value)
 };
 
 /**
- * Decode a ${type} encoded according to the MessagePack format
+ * Decode a enum ${pid} encoded according to the MessagePack format
  *
  * @param[inout] decoder decoder
  * @param[out]   value   location where to store decoded value
@@ -68,13 +133,10 @@ ${check}(const ${type} value)
  * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
  *   disabled and @p decoder is in error state before calling this function,
  *   result is undefined. An assertion is triggered otherwise.
- * - @p value *MUST* have been initialized using ${init}()
- *   before calling this function. Result is undefined otherwise.
  *
- * @see
+ * @sa
  * - dpack_decoder_init_buffer()
  * - dpack_decoder_init_skip_buffer()
- * - ${init}()
  */
 static inline int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${decode}(struct dpack_decoder * decoder,
@@ -90,12 +152,12 @@ ${decode}(struct dpack_decoder * decoder,
 		return ret;
 
 	return ${check}(*value);
-}
+};
 
 /**
- * Encode an ${type} according to the MessagePack format
+ * Encode an enum ${pid} according to the MessagePack format
  * @param[inout] encoder encoder
- * @param[in]    value  ${pid} value to encode
+ * @param[in]    value   enum ${pid} value to encode
  *
  * @return an errno like error code
  * @retval 0         Success
@@ -108,27 +170,23 @@ ${decode}(struct dpack_decoder * decoder,
  * - When compiled with the #CONFIG_${lib.id.upper()}_ASSERT build option
  *   disabled and @p decoder is in error state before calling this function,
  *   result is undefined. An assertion is triggered otherwise.
- * - @p value *MUST* have been initialized using ${init}()
- *   before calling this function. Result is undefined otherwise.
  *
  * @see
  * - dpack_encode_int8()
  * - dpack_encoder_init_buffer()
- * - ${init}()
  */
 static inline int __${pre}nonull(1) __nothrow __warn_result ${deprecated}
 ${encode}(struct dpack_encoder * encoder,
-	  const ${type} value)
+	  ${type} value)
 {
 	${assert_fn}(encoder);
-	${assert_fn}(${check}(value) == 0);
 
 	return dpack_encode_${dpack}(encoder, value);
-}
+};
 
 #if $json
 /**
- * Decode a ${type} encoded according to the MessagePack format
+ * Decode a int encoded according to the MessagePack format
  *
  * @param[inout] decoder decoder
  *
@@ -157,9 +215,9 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 __${pre}nonull(1) __nothrow __warn_result ${deprecated};
 
 /**
- * Encode an json ${type} according to the MessagePack format
+ * Encode an json string according to the MessagePack format
  * @param[inout] encoder encoder
- * @param[in]    object json-object value to encode
+ * @param[in]    object  json-object value to encode
  *
  * @return an errno like error code
  * @retval 0         Success
@@ -182,6 +240,7 @@ extern int
 ${encode}_from_json(struct dpack_encoder * encoder,
 		    struct json_object * object)
 __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated};
+
 #end if
 
 /*

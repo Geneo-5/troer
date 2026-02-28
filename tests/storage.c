@@ -5,7 +5,7 @@
 
 int main(void)
 {
-	struct stk_repo repo;
+	struct hed_repo repo;
 	struct json_object *obj;
 	int ret;
 	int val;

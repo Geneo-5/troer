@@ -1,13 +1,16 @@
 schema: exchange
-name: test-exchange
+name: test-typescript
 version: 0.0.1
-doc: Test exchange schema and idl
+doc: Test exchange typescript schema and idl
 prefix: ts_
 
 includes:
   - file: test-exchange
+    header: <test-exchange/lib.h>
   - file: test-lib
+    header: <test-lib/lib.h>
   - file: test-storage
+    header: <test-storage/lib.h>
 
 rpc:
   -

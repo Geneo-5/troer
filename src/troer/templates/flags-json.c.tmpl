@@ -1,17 +1,20 @@
+
 struct json_object *
 ${decode}_to_json(struct dpack_decoder * decoder)
 {
-	struct json_object *object;
-	${type} map;
-	${type} iter;
-	unsigned int i;
-	int ret;
+	${assert_fn}(decoder);
 
-	ret = ${init}(&map);
+	int ret;
+	ssize_t nb;
+	${type} value;
+	struct json_object *object;
+	const char *str[${pid.upper()}_NB];
+
+	ret = ${init}(&value);
 	if (ret)
 		return NULL;
 
-	ret = ${decode}(decoder, &map);
+	ret = ${decode}(decoder, &value);
 	if (ret)
 		return NULL;
 
@@ -19,10 +22,14 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 	if (!object)
 		return NULL;
 
-	stroll_bmap_foreach_set${stroll}(&iter, map, &i) {
+	nb = ${pid}_to_str(str, ${pid.upper()}_NB, value);
+	if (nb < 0)
+		goto put;
+
+	for (ssize_t i = 0; i < nb; i++) {
 		struct json_object *obj;
 
-		obj = json_object_new_int((int)i);
+		obj = json_object_new_string(str[i]);
 		if (!obj)
 			goto put;
 
@@ -32,6 +39,7 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 			goto put;
 		}
 	}
+	
 	return object;
 
 put:
@@ -58,21 +66,23 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 
 	for (unsigned int i = 0; i < json_object_array_length(object); i++) {
 		struct json_object *tmp;
-		int bit;
+		${type} value;
+		const char * str;
 
 		tmp = json_object_array_get_idx(object, i);
 		if (!tmp)
 			return -EINVAL;
 
 		errno = 0;
-		bit = json_object_get_int(tmp);
+		str = json_object_get_string(object);
 		if (errno)
 			return -errno;
 
-		if ((bit < 0) || (bit >= ${size}))
-			return -EINVAL;
+		ret = ${pid}_from_str(str, &value);
+		if (ret)
+			return ret;
 
-		stroll_bmap_set${stroll}(&map, (unsigned int)bit);
+		map = stroll_bmap_or${stroll}(map, value);
 	}
 
 	ret = ${check}(map);
