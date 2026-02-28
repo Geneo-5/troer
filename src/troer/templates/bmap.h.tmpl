@@ -2,13 +2,13 @@
  * Minimum size in bytes of an ${type} serialized according to
  * the @rstsubst{MessagePack int format}.
  */
-\#define ${pid.upper()}_PACKED_SIZE_MIN DPACK_BIN_SIZE(STROLL_FBMAP_WORD_NR(${size}) * sizeof(unsigned long))
+\#define ${pid.upper()}_PACKED_SIZE_MIN DPACK_${dpack.upper()}_SIZE_MIN
 
 /**
  * Maximum size in bytes of an ${type} serialized according to
  * the @rstsubst{MessagePack int format}.
  */
-\#define ${pid.upper()}_PACKED_SIZE_MAX ${pid.upper()}_PACKED_SIZE_MIN
+\#define ${pid.upper()}_PACKED_SIZE_MAX DPACK_${dpack.upper()}_SIZE_MAX
 #if $app_check
 
 /**
@@ -21,7 +21,7 @@
  * @retval -EINVAL Invalid value
  */
 extern int
-${app_check}(const ${type} *value)
+${app_check}(const ${type} value)
 __${pre}nonull(1) __warn_result;
 #end if
 
@@ -35,13 +35,14 @@ __${pre}nonull(1) __warn_result;
  * @retval -EINVAL Invalid value
  */
 static inline int __warn_result ${deprecated}
-#if $app_check
-${check}(const ${type} * value)
+${check}(const ${type} value)
 {
+	if(stroll_bmap_test_mask${stroll}(value, ${mask}))
+		return -EINVAL;
+
+#if $app_check
 	return ${app_check}(value);
 #else
-${check}(const ${type} * value __unused)
-{
 	return 0;
 #end if
 };
@@ -80,18 +81,15 @@ ${decode}(struct dpack_decoder * decoder,
 	  ${type} * __restrict value)
 {
 	${assert_fn}(decoder);
-	${assert_fn}(value->nr == ${size});
-	${assert_fn}(value->bits);
+	${assert_fn}(value);
 
-	ssize_t ret;
+	int ret;
 
-	ret = dpack_decode_bincpy_equ(decoder,
-	                              STROLL_FBMAP_WORD_NR(${size}) * sizeof(unsigned long),
-	                              (uint8_t *)value->bits);
-	if (ret < 0)
-		return (int)ret;
+	ret = dpack_decode_${dpack}(decoder, value);
+	if (ret)
+		return ret;
 
-	return ${check}(value);
+	return ${check}(*value);
 }
 
 /**
@@ -120,16 +118,12 @@ ${decode}(struct dpack_decoder * decoder,
  */
 static inline int __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated}
 ${encode}(struct dpack_encoder * encoder,
-	  const ${type} * value)
+	  const ${type} value)
 {
 	${assert_fn}(encoder);
-	${assert_fn}(value->nr == ${size});
-	${assert_fn}(value->bits);
 	${assert_fn}(${check}(value) == 0);
 
-	return dpack_encode_bin(encoder,
-	                        (uint8_t *)value->bits,
-	                        STROLL_FBMAP_WORD_NR(${size}) * sizeof(unsigned long));
+	return dpack_encode_${dpack}(encoder, value);
 }
 
 #if $json
@@ -200,16 +194,7 @@ __${pre}nonull(1, 2) __nothrow __warn_result ${deprecated};
 static inline int __${pre}nonull(1) __warn_result ${deprecated}
 ${init}(${type} * value)
 {
-	return stroll_fbmap_init_clear(value, ${size});
-}
-
-/*
- * Finalize an empty ${type}_.
- * @param[inout] value Length-Value String
- */
-static inline void __${pre}nonull(1) ${deprecated}
-${fini}(${type} * value)
-{
-	stroll_fbmap_fini(value);
+	stroll_bmap_setup_clear${stroll}(value);
+	return 0;
 }
 ## ex: filetype=c

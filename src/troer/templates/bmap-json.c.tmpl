@@ -3,9 +3,9 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 {
 	struct json_object *object;
 	${type} map;
-	struct stroll_fbmap_iter iter;
+	${type} iter;
+	unsigned int i;
 	int ret;
-	int i;
 
 	ret = ${init}(&map);
 	if (ret)
@@ -13,16 +13,16 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 
 	object = json_object_new_array();
 	if (!object)
-		goto fini;
+		return NULL;
 
 	ret = ${decode}(decoder, &map);
 	if (ret)
 		goto put;
 
-	stroll_fbmap_foreach_set(&iter, &map, i) {
+	stroll_bmap_foreach_set${stroll}(&iter, map, &i) {
 		struct json_object *obj;
 
-		obj = json_object_new_int(i);
+		obj = json_object_new_int((int)i);
 		if (!obj)
 			goto put;
 
@@ -32,13 +32,10 @@ ${decode}_to_json(struct dpack_decoder * decoder)
 			goto put;
 		}
 	}
-	${fini}(&map);
 	return object;
 
 put:
 	json_object_put(object);
-fini:
-	${fini}(&map);
 	return NULL;
 }
 
@@ -64,31 +61,24 @@ ${encode}_from_json(struct dpack_encoder * encoder,
 		int bit;
 
 		tmp = json_object_array_get_idx(object, i);
-		if (!tmp) {
-			ret = -EINVAL;
-			goto error;
-		}
+		if (!tmp)
+			return -EINVAL;
 
 		errno = 0;
 		bit = json_object_get_int(tmp);
-		if (errno) {
-			ret = -errno;
-			goto error;
-		}
-		if ((bit < 0) || (bit >= ${size})) {
-			ret = -EINVAL;
-			goto error;
-		}
-		stroll_fbmap_set(&map, (unsigned int)bit);
+		if (errno)
+			return -errno;
+
+		if ((bit < 0) || (bit >= ${size}))
+			return -EINVAL;
+
+		stroll_bmap_set${stroll}(&map, (unsigned int)bit);
 	}
 
-	ret = ${check}(&map);
+	ret = ${check}(map);
 	if (ret)
-		goto error;
+		return ret;
 
-	ret = ${encode}(encoder, &map);
-error:
-	${fini}(&map);
-	return ret;
+	return ${encode}(encoder, map);
 }
 ## ex: filetype=c

@@ -90,4 +90,16 @@ declarations:
       -
         name: enumumerate
         type: $on-off
+      -
+        name: bmap32
+        type: bmap
+        size: 30
+      -
+        name: bmap64
+        type: bmap
+        size: 60
+      -
+        name: fbmap
+        type: bmap
+        size: 100
 

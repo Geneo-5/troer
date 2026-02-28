@@ -285,15 +285,32 @@ class F64Elem(Elem):
 class BmapElem(Elem):
     def __init__(self, lib, yaml):
         super().__init__(lib, yaml)
-        self.tmpl  = 'fbmap'
-        self.type = 'struct stroll_fbmap'
-        self.ampersand = '&'
-        self.asterisk  = '*'
+        if self.yaml['size'] <= 32:
+            lib.header.add("<dpack/scalar.h>")
+            lib.header.add("<stroll/bmap.h>")
+            self.tmpl  = 'bmap'
+            self.type = 'uint32_t'
+            self.dpack = 'uint32'
+            self.mask = f"UINT32_C(0x{(1 << 32) - (1 << self.yaml['size']):08X})"
+            self.stroll = '32'
+        elif self.yaml['size'] <= 64:
+            lib.header.add("<dpack/scalar.h>")
+            lib.header.add("<stroll/bmap.h>")
+            self.tmpl  = 'bmap'
+            self.type = 'uint64_t'
+            self.dpack = 'uint64'
+            self.mask = f"UINT64_C(0x{(1 << 64) - (1 << self.yaml['size']):016X})"
+            self.stroll = '64'
+        else:
+            lib.header.add("<dpack/bin.h>")
+            lib.header.add("<stroll/fbmap.h>")
+            self.tmpl  = 'fbmap'
+            self.type = 'struct stroll_fbmap'
+            self.ampersand = '&'
+            self.asterisk  = '*'
+            self.fini  = f"{self.pre}fini_{self.id}"
         self.init  = f"{self.pre}init_{self.id}"
-        self.fini  = f"{self.pre}fini_{self.id}"
-        lib.header.add("<dpack/bin.h>")
         lib.header.add("<stroll/array.h>")
-        lib.header.add("<stroll/fbmap.h>")
 
 class StrElem(Elem):
     def __init__(self, lib, yaml):
