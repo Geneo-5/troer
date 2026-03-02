@@ -8,8 +8,6 @@ $defs:
   name:
     type: string
     pattern: ^[a-zA-Z]([a-zA-Z0-9_-]*[a-zA-Z0-9]+)?$
-  name_enum:
-    type: [ string, number ]
   prefix:
     type: string
     pattern: ^[a-zA-Z]([a-zA-Z0-9_]+)?$
@@ -82,15 +80,17 @@ $defs:
                 minItems: 1
                 items:
                   oneOf:
-                    - $ref: '#/$defs/name_enum'
+                    - $ref: '#/$defs/name'
                     - type: object
                       required: [ name ]
                       additionalProperties: False
                       properties:
                         name:
-                          $ref: '#/$defs/name_enum'
+                          $ref: '#/$defs/name'
                         value:
                           type: [ string, number ]
+                        string:
+                          type: string
                         doc:
                           type: string
         - if:
@@ -112,9 +112,11 @@ $defs:
                   additionalProperties: False
                   properties:
                     name:
-                      $ref: '#/$defs/name_enum'
+                      $ref: '#/$defs/name'
                     value:
                       type: [ string, number ]
+                    string:
+                      type: string
                     doc:
                       type: string
 

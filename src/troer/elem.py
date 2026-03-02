@@ -338,6 +338,7 @@ class StrElem(Elem):
 class EnumEntry(Elem):
     def __init__(self, lib, yaml):
         super().__init__(lib, yaml)
+        self.string = yaml.get("string", self.name)
 
 class EnumElem(Elem):
     def __init__(self, lib, yaml):

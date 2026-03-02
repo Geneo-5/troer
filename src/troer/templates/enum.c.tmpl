@@ -4,8 +4,8 @@ struct ${pid}_bisect_entry {
 };
 
 static const struct ${pid}_bisect_entry ${pid}_bisect_array[] = {
-#for $e in sorted($entries, key=lambda x: x.name)
-	{"${e.name}", ${e.pid.upper()}},
+#for $e in sorted($entries, key=lambda x: x.string)
+	{"${e.string}", ${e.pid.upper()}},
 #end for
 };
 
