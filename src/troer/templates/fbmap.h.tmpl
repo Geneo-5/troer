@@ -35,16 +35,17 @@ __${pre}nonull(1) __warn_result;
  * @retval -EINVAL Invalid value
  */
 static inline int __warn_result ${deprecated}
-#if $app_check
 ${check}(const ${type} * value)
 {
+	if (${size} != stroll_fbmap_nr(value))
+		return -EINVAL;
+
+#if $app_check
 	return ${app_check}(value);
 #else
-${check}(const ${type} * value __unused)
-{
 	return 0;
 #end if
-};
+}
 
 /**
  * Decode a ${type} encoded according to the MessagePack format
