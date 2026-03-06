@@ -43,7 +43,6 @@ ${decode}_array_${e.id}(struct dpack_decoder * decoder,
 #if isinstance(e.repeated, (int, str))
 	${assert_fn}(id < ${e.repeated});
 #else
-	${assert_fn}(id >= ${e.repeated.min});
 	${assert_fn}(id < ${e.repeated.max});
 #end if
 
