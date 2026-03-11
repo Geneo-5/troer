@@ -10,21 +10,21 @@ ${e.pre}clt_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event)
 
 #if 'response' in $e
 
-typedef int (${e.pre}clt_${e.id}_fn)(void * ctx, uint32_t status,
+typedef int (${e.pre}clt_${e.id}_fn)(void * ctx, int status,
                                     ${e.response.type} ${e.response.asterisk}req);
 
 extern int
 ${e.pre}ans_${e.id}(struct galv_rpc_msg *msg,
-                    uint32_t status,
+                    int status,
                     ${e.response.type} ${e.response.asterisk}req)
 	__${pre}nonull(1) __nothrow __warn_result;
 #else
 
-typedef int (${e.pre}clt_${e.id}_fn)(void *ctx, uint32_t status);
+typedef int (${e.pre}clt_${e.id}_fn)(void *ctx, int status);
 
 extern int
 ${e.pre}ans_${e.id}(struct galv_rpc_msg *msg,
-                    uint32_t status)
+                    int status)
 	__${pre}nonull(1) __nothrow __warn_result;
 #end if
 #if 'request' in $e

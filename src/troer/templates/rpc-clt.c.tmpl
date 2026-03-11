@@ -76,7 +76,7 @@ ${e.pre}clt_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event)
 #if 'response' in $e
 	${e.response.type} param;
 #end if
-	uint32_t status;
+	int status;
 	int ret;
 	struct dpack_decoder *decoder = galv_rpc_clnt_msg_decoder(msg);
 	struct hed_rpc_clnt_msg *hed_msg = (struct hed_rpc_clnt_msg *)msg;
@@ -91,7 +91,7 @@ ${e.pre}clt_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event)
 		goto error;
 	}
 
-	ret = dpack_decode_uint32(decoder, &status);
+	ret = dpack_decode_int(decoder, &status);
 	if (ret)
 		goto error;
 #if 'response' in $e
@@ -152,14 +152,14 @@ ${e.pre}rsync_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event)
 
 	if (event) {
 		${assert_fn}(event < 0);
-		*hed_msg->u.sync.status = (uint32_t)-event;
+		*hed_msg->u.sync.status = event;
 		goto drop;
 	}
 
-	ret = dpack_decode_uint32(decoder, hed_msg->u.sync.status);
+	ret = dpack_decode_int(decoder, hed_msg->u.sync.status);
 #if 'response' in $e
 	if (ret) {
-		*hed_msg->u.sync.status = (uint32_t)-ret;
+		*hed_msg->u.sync.status = ret;
 		goto drop;
 	}
 
@@ -167,11 +167,11 @@ ${e.pre}rsync_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event)
 	if (!*hed_msg->u.sync.status) {
 		ret = ${e.response.decode}(decoder, hed_msg->u.sync.response);
 		if (ret)
-			*hed_msg->u.sync.status = (uint32_t)-ret;
+			*hed_msg->u.sync.status = ret;
 	}
 #else
 	if (ret)
-		*hed_msg->u.sync.status = (uint32_t)-ret;
+		*hed_msg->u.sync.status = ret;
 #end if
 
 drop:
@@ -208,7 +208,7 @@ ${e.pre}rsync_${e.id}(struct galv_rpc_clnt *client)
 	struct galv_rpc_clnt_msg *msg;
 	struct hed_rpc_clnt_msg  *hed_msg;
 	int                       ret;
-	uint32_t                  status;
+	int                       status;
 
 	msg = galv_rpc_clnt_create_request(client,
 	                                   ${e.pid.upper()},
@@ -233,7 +233,7 @@ ${e.pre}rsync_${e.id}(struct galv_rpc_clnt *client)
 		return ret;
 
 	// TODO sync galv
-	return (int)status;
+	return status;
 #if 'request' in $e
 
 drop:

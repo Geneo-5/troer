@@ -42,7 +42,7 @@ close:
 
 #ifndef SYNC
 int
-rpc_clt_add(void *ctx __unused, uint32_t status, int32_t req)
+rpc_clt_add(void *ctx __unused, int status, int32_t req)
 {
 	if (status) {
 		errno = status;

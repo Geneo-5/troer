@@ -42,7 +42,7 @@ ${pre}ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
 	struct dpack_decoder *decoder = galv_rpc_clnt_msg_decoder(msg);
 	struct hed_rpc_clnt_msg *hed_msg = (struct hed_rpc_clnt_msg *)msg;
 	int ret;
-	uint32_t status;
+	int status;
 	${pre}ans_json_fn * cb = hed_msg->u.async.cb;
 	void *ctx = hed_msg->u.async.ctx;
 
@@ -51,9 +51,9 @@ ${pre}ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
 		ret = -ENOMEM;
 		goto drop;
 	}
-	
+
 	if (event) {
-		resp = json_object_new_int(-event);
+		resp = json_object_new_int(event);
 		if (!resp) {
 			ret = -ENOMEM;
 			goto error;
@@ -113,7 +113,7 @@ ${pre}ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
 	}
 
 submit:
-	cb(0, obj, ctx);
+	cb(status, obj, ctx);
 error:
 	json_object_put(obj);
 drop:
@@ -210,7 +210,7 @@ ${pre}sync_ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
 		json_object_put(resp);
 		goto drop;
 	}
-	ret = dpack_decode_uint32(decoder, hed_msg->u.sync.status);
+	ret = dpack_decode_int(decoder, hed_msg->u.sync.status);
 	if (ret)
 		goto drop;
 
@@ -246,7 +246,7 @@ ${pre}sync_ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
 drop:
 	galv_rpc_clnt_msg_drop(msg);
 	if (ret)
-		*hed_msg->u.sync.status = (uint32_t)-ret;
+		*hed_msg->u.sync.status = ret;
 
 	return 0;
 }
@@ -261,7 +261,7 @@ ${pre}rsync_from_json(struct galv_rpc_clnt * client,
 	json_object  *param_obj;
 	${rpc.type}   req_id;
 	int ret;
-	uint32_t status;
+	int status;
 
 	if ((!json_object_object_get_ex(request, "req", &req_obj)) ||
 	    (json_object_get_type(req_obj) != json_type_string))
@@ -297,7 +297,7 @@ ${pre}rsync_from_json(struct galv_rpc_clnt * client,
 		return ret;
 
 	// TODO sync galv
-	return (int)status;
+	return status;
 
 drop:
 	galv_rpc_clnt_msg_drop(msg);

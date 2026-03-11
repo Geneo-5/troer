@@ -18,11 +18,11 @@
 int
 #if 'response' in $e
 ${e.pre}ans_${e.id}(struct galv_rpc_msg *msg,
-                    uint32_t status,
+                    int status,
                     ${e.response.type} ${e.response.asterisk}ans)
 #else
 ${e.pre}ans_${e.id}(struct galv_rpc_msg *msg,
-                    uint32_t status)
+                    int status)
 #end if
 {
 	${assert_fn}(msg);
