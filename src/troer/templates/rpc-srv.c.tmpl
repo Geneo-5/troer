@@ -32,7 +32,7 @@ ${e.pre}ans_${e.id}(struct galv_rpc_msg *msg,
 	int                   ret;
 
 	encoder = galv_rpc_msg_encoder(msg);
-	ret = dpack_encode_uint32(encoder, status);
+	ret = dpack_encode_int(encoder, status);
 	if (ret)
 		goto error;
 #if 'response' in $e

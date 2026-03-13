@@ -106,21 +106,25 @@ ${e.pre}clt_dispatch_${e.id}(struct galv_rpc_clnt_msg *msg, int event)
 		ret = ${e.response.decode}(decoder, &param);
 		if (ret)
 			goto ${goto};
+
+		galv_rpc_clnt_msg_drop(msg);
 		ret = cb(ctx, status, ${e.response.ampersand}param);
-	} else
+	} else {
+		galv_rpc_clnt_msg_drop(msg);
 #if $e.response.ampersand
 		ret = cb(ctx, status, NULL);
 #else
 		ret = cb(ctx, status, 0);
 #end if
+	}
 #else
+	galv_rpc_clnt_msg_drop(msg);
 	ret = cb(ctx, status);
 #end if
 #if 'response' in $e and 'fini' in $e.response and $e.response.fini
 	${e.response.fini}(&param);
 #end if
-	galv_rpc_clnt_msg_drop(msg);
-	return 0;
+	return ret;
 
 #if 'response' in $e and 'fini' in $e.response and $e.response.fini
 fini:
@@ -130,12 +134,12 @@ error:
 	galv_rpc_clnt_msg_drop(msg);
 #if 'response' in $e
 #if $e.response.ampersand
-	return cb(ctx, (uint32_t)-ret, NULL);
+	return cb(ctx, ret, NULL);
 #else
-	return cb(ctx, (uint32_t)-ret, 0);
+	return cb(ctx, ret, 0);
 #end if
 #else
-	return cb(ctx, (uint32_t)-ret);
+	return cb(ctx, ret);
 #end if
 }
 
