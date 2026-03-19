@@ -79,7 +79,7 @@ ${pre}ans_to_json(struct galv_rpc_clnt_msg *msg, int event)
 		json_object_put(resp);
 		goto error;
 	}
-	ret = dpack_decode_uint32(decoder, &status);
+	ret = dpack_decode_int(decoder, &status);
 	if (ret)
 		goto error;
 
