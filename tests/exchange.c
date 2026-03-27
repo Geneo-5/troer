@@ -34,7 +34,7 @@ int main(int argc, char * const argv[])
 	if (argc == 2)
 		return pack_to_file(argv[1]);
 
-	ret = hed_srv_init(&srv, "sock", &rpc_srv_conf, &rpc_srv_factory);
+	ret = hed_srv_init(&srv, "sock", 0666, &rpc_srv_conf, &rpc_srv_factory);
 	if (ret)
 		return ret;
 	//ret = hed_srv_run(&srv);

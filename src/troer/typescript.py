@@ -54,7 +54,7 @@ class TypeScript(Renderer):
                     if isinstance(e, RefElem):
                         tmp.append(e.elem)
                     t.pids.append((e, self.paramType(e)))
-        
+
         self.enum   = list(self.enum.values())
         self.struct = list(self.struct.values())
 
@@ -80,6 +80,8 @@ class TypeScript(Renderer):
             return "boolean"
         elif isinstance(p, RefElem):
             return self.paramType(p.elem)
+        elif isinstance(p, CustomElem):
+            return "string"
         else:
             return p.pid
 
