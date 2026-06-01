@@ -17,7 +17,7 @@ ${pid}_to_str(const char ** buf, size_t nr __unused, ${type} value)
 
 	unsigned long i;
 	ssize_t m = 0;
-	${type} found;
+	${type} found = 0;
 
 	if (value == 0)
 		return 0;
